@@ -1,6 +1,6 @@
 package model;
 
-import java.util.Objects;
+// импорт удалила, почему-то казалось, что использовала...
 public class Task {
     private int id;
     private String name;

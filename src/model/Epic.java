@@ -2,49 +2,13 @@ package model;
 
 import java.util.ArrayList;
 import java.util.List;
-public class Epic {
-    private int id;
-    private String name;
-    private String description;
-    private TaskStatus status;
-    private List<Integer> subtaskIds = new ArrayList<>();
+
+public class Epic extends Task { // У меня почему-то idea начала ругаться, начала чушью заниматься, а потом забыла вернуть наследование...
+    // Всё вернула, всё работает :)
+    private final List<Integer> subtaskIds = new ArrayList<>();
 
     public Epic(String name, String description) {
-        this.name = name;
-        this.description = description;
-        this.status = TaskStatus.NEW;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public TaskStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(TaskStatus status) {
-        this.status = status;
+        super(name, description, TaskStatus.NEW);
     }
 
     public List<Integer> getSubtaskIds() {
@@ -59,14 +23,4 @@ public class Epic {
         this.subtaskIds.remove(subtaskId);
     }
 
-    @Override
-    public String toString() {
-        return "Epic{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", status=" + status +
-                ", subtaskIds=" + subtaskIds +
-                '}';
-    }
 }
