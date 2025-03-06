@@ -3,13 +3,18 @@ package model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Epic extends Task { // У меня почему-то idea начала ругаться, начала чушью заниматься, а потом забыла вернуть наследование...
-    // Всё вернула, всё работает :)
+public class Epic extends Task {
+
     private final List<Integer> subtaskIds = new ArrayList<>();
 
     public Epic(String name, String description) {
-        super(name, description, TaskStatus.NEW);
+        super(name, description);
     }
+
+    public Epic(String name, String description, int id) {
+        super(name, description, id);
+    }
+
 
     public List<Integer> getSubtaskIds() {
         return subtaskIds;
@@ -22,5 +27,4 @@ public class Epic extends Task { // У меня почему-то idea нача�
     public void removeSubtaskId(Integer subtaskId) {
         this.subtaskIds.remove(subtaskId);
     }
-
 }

@@ -1,24 +1,24 @@
 package model;
 
-// импорт удалила, почему-то казалось, что использовала...
-public class Task {
-    private int id;
-    private String name;
-    private String description;
-    private TaskStatus status;
+import java.util.Objects;
 
-    public Task(String name, String description, TaskStatus status) {
+public class Task {
+    protected String name;
+    protected String description;
+    protected int id;
+    protected TaskStatus status;
+
+    public Task(String name, String description) {
         this.name = name;
         this.description = description;
-        this.status = status;
+        this.status = TaskStatus.NEW;
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
+    public Task(String name, String description, int id) {
+        this.name = name;
+        this.description = description;
         this.id = id;
+        this.status = TaskStatus.NEW;
     }
 
     public String getName() {
@@ -37,6 +37,14 @@ public class Task {
         this.description = description;
     }
 
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public TaskStatus getStatus() {
         return status;
     }
@@ -46,11 +54,24 @@ public class Task {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Task task = (Task) o;
+        return id == task.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
     public String toString() {
         return "Task{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
+                "name='" + name + '\'' +
                 ", description='" + description + '\'' +
+                ", id=" + id +
                 ", status=" + status +
                 '}';
     }
