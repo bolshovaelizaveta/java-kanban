@@ -3,7 +3,8 @@ package model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Epic extends Task {
+
+public class Epic extends model.Task {
 
     private final List<Integer> subtaskIds = new ArrayList<>();
 
