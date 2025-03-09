@@ -9,12 +9,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class InMemoryTaskManager implements manager.TaskManager {
+public class InMemoryTaskManager implements TaskManager {
     private final HashMap<Integer, Task> tasks = new HashMap<>();
     private final HashMap<Integer, Epic> epics = new HashMap<>();
     private final HashMap<Integer, Subtask> subtasks = new HashMap<>();
     private int idCounter = 0;
-    private final manager.HistoryManager historyManager = manager.Managers.getDefaultHistory();
+    private final HistoryManager historyManager = Managers.getDefaultHistory(); // Да, идеа начала не видеть пакет
+    // и предложила импортировать (я подумала она про import в начале кода), ну я и нажала alt + enter и не обратила внимание что произошло...
+    // Да, я разобралась, всё наладила.
 
     @Override
     public List<Task> getTasks() {

@@ -1,10 +1,8 @@
 package model;
 
-import model.Epic;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class EpicTest {
     @Test
@@ -23,5 +21,14 @@ public class EpicTest {
         Epic epic2 = new Epic("Epic2", "Description2", 2);
 
         assertNotEquals(epic1, epic2, "Эпики с разными ID не должны быть равны.");
+    }
+
+    @Test // Добавила ещё один тест
+    void epicCannotBeSubtaskOfItself() {
+        // Проверяет, что Epic нельзя добавить в самого себя в виде подзадачи
+        Epic epic = new Epic("Test Epic", "Test Description");
+        int epicId = epic.getId();
+        epic.addSubtaskId(epicId);
+        assertFalse(epic.getSubtaskIds().contains(epicId), "Epic не должен быть подзадачей самого себя");
     }
 }
