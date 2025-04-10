@@ -82,6 +82,7 @@ public class InMemoryTaskManagerTest {
         assertEquals(1, tasks.size(), "Неверное количество задач.");
         assertEquals(task, tasks.getFirst(), "Задачи не совпадают.");
     }
+
     @Test
     void deleteTask_shouldRemoveTaskFromHistory() {
         InMemoryTaskManager taskManager = new InMemoryTaskManager();
