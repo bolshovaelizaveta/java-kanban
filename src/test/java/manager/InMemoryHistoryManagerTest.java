@@ -11,8 +11,7 @@ public class InMemoryHistoryManagerTest {
     @Test
     void historyManagerPreservesTaskVersion() {
         //  Проверяем, что задачи в HistoryManager, сохраняют предыдущую версию задачи
-        InMemoryTaskManager taskManager = new InMemoryTaskManager(); //  Передаем historyManager в taskManager
-        // И убрала лишнее добавление напрямую в historyManager
+        InMemoryTaskManager taskManager = new InMemoryTaskManager();
         Task task = new Task("Task", "Description");
         int taskId = taskManager.createTask(task);
 

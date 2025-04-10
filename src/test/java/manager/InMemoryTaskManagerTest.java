@@ -28,7 +28,7 @@ public class InMemoryTaskManagerTest {
 
         taskManager.createSubtask(subtask);
         assertNull(taskManager.getSubtask(10), "Подзадача не должна быть сохранена, если Epic не существует.");
-    } // Исправила: подзадача не сохранится, если epicId не был найден
+    }
 
     @Test
     void inMemoryTaskManager_addDifferentTaskTypesAndFindById() {
@@ -64,9 +64,7 @@ public class InMemoryTaskManagerTest {
         assertNotNull(taskManager.getTask(id2), "Задача с заданным ID должна существовать.");
 
         assertEquals(2, taskManager.getHistory().size(), "В истории должно быть 2 задачи.");
-    } // Вроде исправила
-
-    // Тогда удаляю этот тест с:
+    }
 
     @Test
     void addNewTask() {

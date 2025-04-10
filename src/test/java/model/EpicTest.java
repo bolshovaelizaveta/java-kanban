@@ -23,7 +23,7 @@ public class EpicTest {
         assertNotEquals(epic1, epic2, "Эпики с разными ID не должны быть равны.");
     }
 
-    @Test // Добавила ещё один тест
+    @Test
     void epicCannotBeSubtaskOfItself() {
         // Проверяет, что Epic нельзя добавить в самого себя в виде подзадачи
         Epic epic = new Epic("Test Epic", "Test Description");
