@@ -26,7 +26,7 @@ public class SubtaskTest {
     @Test
     void subtaskCannotBeEpicOfItself() {
         // Проверяет, что Subtask нельзя сделать своим же эпиком
-        Subtask subtask = new Subtask("Test Subtask", "Test Description",1, 1);
+        Subtask subtask = new Subtask("Test Subtask", "Test Description", 1, 1);
         assertNotEquals(subtask.getEpicId(), subtask.getId(), "Подзадача не должна быть эпиком для самой себя");
     }
 }
