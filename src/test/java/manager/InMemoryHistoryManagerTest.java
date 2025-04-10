@@ -9,39 +9,67 @@ import java.util.List;
 public class InMemoryHistoryManagerTest {
 
     @Test
-    void historyManagerPreservesTaskVersion() {
-        //  Проверяем, что задачи в HistoryManager, сохраняют предыдущую версию задачи
-        InMemoryTaskManager taskManager = new InMemoryTaskManager();
-        Task task = new Task("Task", "Description");
-        int taskId = taskManager.createTask(task);
+    void add_shouldAddTasksToHistory() {
+        HistoryManager historyManager = new InMemoryHistoryManager();
+        Task task1 = new Task("Task 1", "Description 1", 1);
+        Task task2 = new Task("Task 2", "Description 2", 2);
 
-        // Получаем задачу через taskManager, чтобы она попала в историю
-        taskManager.getTask(taskId);
-        Task modifiedTask = new Task(task.getName(), task.getDescription());
-        modifiedTask.setName("New Name");
-        modifiedTask.setDescription("New Description");
+        historyManager.add(task1);
+        historyManager.add(task2);
 
-        taskManager.updateTask(modifiedTask); // Обновляем задачу через taskManager
-        taskManager.getTask(taskId);
-
-        List<Task> history = taskManager.getHistory();
+        List<Task> history = historyManager.getHistory();
         assertEquals(2, history.size(), "История должна содержать 2 задачи.");
-        assertEquals("Task", history.get(0).getName(), "Имя первой задачи должно быть оригинальным.");
-        assertEquals("New Name", history.get(1).getName(), "Имя второй задачи должно быть новым.");
+        assertEquals(task1, history.get(0), "Первая задача в истории должна быть task1.");
+        assertEquals(task2, history.get(1), "Вторая задача в истории должна быть task2.");
     }
 
     @Test
-    void add() {
-        //Тест добавления в историю
-        InMemoryTaskManager taskManager = new InMemoryTaskManager();
-        Task task = new Task("Test Task", "Test Description");
-        int taskId = taskManager.createTask(task);
+    void add_shouldNotAddDuplicates_onlyKeepLatest() {
+        HistoryManager historyManager = new InMemoryHistoryManager();
+        Task task1 = new Task("Task 1", "Description 1", 1);
+        Task task2 = new Task("Task 2", "Description 2", 2);
 
-        taskManager.getTask(taskId); // Добавляем задачу в историю через getTask()
+        historyManager.add(task1);
+        historyManager.add(task2);
+        historyManager.add(task1);
 
-        List<Task> history = taskManager.getHistory();
-        assertNotNull(history, "История не пустая.");
-        assertEquals(1, history.size(), "История должна содержать одну задачу.");
-        assertEquals(task, history.getFirst(), "Задача в истории должна совпадать с добавленной.");
+        List<Task> history = historyManager.getHistory();
+        assertEquals(2, history.size(), "История должна содержать 2 задачи.");
+        assertEquals(task2, history.get(0), "Первая задача в истории должна быть task2.");
+        assertEquals(task1, history.get(1), "Вторая задача в истории должна быть task1 (последний просмотр).");
+    }
+
+    @Test
+    void remove_shouldRemoveTaskFromHistory() {
+        HistoryManager historyManager = new InMemoryHistoryManager();
+        Task task1 = new Task("Task 1", "Description 1", 1);
+        Task task2 = new Task("Task 2", "Description 2", 2);
+
+        historyManager.add(task1);
+        historyManager.add(task2);
+        historyManager.remove(1);
+
+        List<Task> history = historyManager.getHistory();
+        assertEquals(1, history.size(), "История должна содержать 1 задачу после удаления.");
+        assertEquals(task2, history.get(0), "Единственная задача в истории должна быть task2.");
+    }
+
+    @Test
+    void remove_shouldHandleRemovingNonExistingTask() {
+        HistoryManager historyManager = new InMemoryHistoryManager();
+        Task task1 = new Task("Task 1", "Description 1", 1);
+        historyManager.add(task1);
+        historyManager.remove(2); // Removing a non-existing task
+
+        List<Task> history = historyManager.getHistory();
+        assertEquals(1, history.size(), "История должна содержать 1 задачу.");
+        assertEquals(task1, history.get(0), "Задача в истории должна быть task1.");
+    }
+
+    @Test
+    void getHistory_shouldReturnEmptyListWhenHistoryIsEmpty() {
+        HistoryManager historyManager = new InMemoryHistoryManager();
+        List<Task> history = historyManager.getHistory();
+        assertTrue(history.isEmpty(), "История должна быть пустой.");
     }
 }
