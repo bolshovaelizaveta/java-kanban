@@ -22,13 +22,14 @@ public class InMemoryTaskManagerTest {
     }
 
     @Test
-    void subtaskCannotHaveItselfAsEpic() {
+    void cannotCreateSubtaskWithoutExistingEpic() {
         InMemoryTaskManager taskManager = new InMemoryTaskManager();
         Subtask subtask = new Subtask("Подзадача", "Описание", 10);
 
-        taskManager.createSubtask(subtask);
-        assertNull(taskManager.getSubtask(10), "Подзадача не должна быть сохранена, если Epic не существует.");
-    } // Исправила: подзадача не сохранится, если epicId не был найден
+        int subtaskId = taskManager.createSubtask(subtask);
+        assertEquals(-1, subtaskId, "Подзадача не должна быть создана, если Epic не существует.");
+        assertNull(taskManager.getSubtask(10), "Подзадача с несуществующим Epic не должна быть сохранена.");
+    }
 
     @Test
     void inMemoryTaskManager_addDifferentTaskTypesAndFindById() {
@@ -64,9 +65,7 @@ public class InMemoryTaskManagerTest {
         assertNotNull(taskManager.getTask(id2), "Задача с заданным ID должна существовать.");
 
         assertEquals(2, taskManager.getHistory().size(), "В истории должно быть 2 задачи.");
-    } // Вроде исправила
-
-    // Тогда удаляю этот тест с:
+    }
 
     @Test
     void addNewTask() {
@@ -82,5 +81,47 @@ public class InMemoryTaskManagerTest {
         assertNotNull(tasks, "Задачи не возвращаются.");
         assertEquals(1, tasks.size(), "Неверное количество задач.");
         assertEquals(task, tasks.getFirst(), "Задачи не совпадают.");
+    }
+
+    @Test
+    void deleteTask_shouldRemoveTaskFromHistory() {
+        InMemoryTaskManager taskManager = new InMemoryTaskManager();
+        Task task = new Task("Test Task", "Test Description");
+        int taskId = taskManager.createTask(task);
+        taskManager.getTask(taskId); // Add to history
+
+        taskManager.deleteTask(taskId);
+        assertTrue(taskManager.getHistory().isEmpty(), "Задача должна быть удалена из истории.");
+    }
+
+    @Test
+    void deleteEpic_shouldRemoveEpicAndSubtasksFromHistory() {
+        InMemoryTaskManager taskManager = new InMemoryTaskManager();
+        Epic epic = new Epic("Test Epic", "Test Description");
+        int epicId = taskManager.createEpic(epic);
+        Subtask subtask1 = new Subtask("Subtask 1", "Description", epicId);
+        int subtaskId1 = taskManager.createSubtask(subtask1);
+        Subtask subtask2 = new Subtask("Subtask 2", "Description", epicId);
+        int subtaskId2 = taskManager.createSubtask(subtask2);
+
+        taskManager.getEpic(epicId); // Add epic to history
+        taskManager.getSubtask(subtaskId1); // Add subtask1 to history
+        taskManager.getSubtask(subtaskId2); // Add subtask2 to history
+
+        taskManager.deleteEpic(epicId);
+        assertTrue(taskManager.getHistory().isEmpty(), "Эпик и его подзадачи должны быть удалены из истории.");
+    }
+
+    @Test
+    void deleteSubtask_shouldRemoveSubtaskFromHistory() {
+        InMemoryTaskManager taskManager = new InMemoryTaskManager();
+        Epic epic = new Epic("Test Epic", "Test Description");
+        int epicId = taskManager.createEpic(epic);
+        Subtask subtask = new Subtask("Test Subtask", "Description", epicId);
+        int subtaskId = taskManager.createSubtask(subtask);
+        taskManager.getSubtask(subtaskId); // Add subtask to history
+
+        taskManager.deleteSubtask(subtaskId);
+        assertTrue(taskManager.getHistory().isEmpty(), "Подзадача должна быть удалена из истории.");
     }
 }

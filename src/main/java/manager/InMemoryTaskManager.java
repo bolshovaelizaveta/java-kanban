@@ -14,9 +14,7 @@ public class InMemoryTaskManager implements TaskManager {
     private final HashMap<Integer, Epic> epics = new HashMap<>();
     private final HashMap<Integer, Subtask> subtasks = new HashMap<>();
     private int idCounter = 0;
-    private final HistoryManager historyManager = Managers.getDefaultHistory(); // Да, идеа начала не видеть пакет
-    // и предложила импортировать (я подумала она про import в начале кода), ну я и нажала alt + enter и не обратила внимание что произошло...
-    // Да, я разобралась, всё наладила.
+    private final HistoryManager historyManager = Managers.getDefaultHistory();
 
     @Override
     public List<Task> getTasks() {
@@ -63,6 +61,7 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void deleteTask(int id) {
         tasks.remove(id);
+        historyManager.remove(id); // Удаляем по id
     }
 
     @Override
@@ -71,8 +70,10 @@ public class InMemoryTaskManager implements TaskManager {
         if (epic != null) {
             for (int subtaskId : epic.getSubtaskIds()) {
                 subtasks.remove(subtaskId);
+                historyManager.remove(subtaskId); // Удаляем по id
             }
             epics.remove(id);
+            historyManager.remove(id); // Удаляем по id
         }
     }
 
@@ -85,6 +86,7 @@ public class InMemoryTaskManager implements TaskManager {
                 epic.removeSubtaskId(id);
                 updateEpicStatus(epic);
             }
+            historyManager.remove(id); // Удаляем по id
         }
     }
 
