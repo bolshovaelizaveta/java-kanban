@@ -20,7 +20,10 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     public FileBackedTaskManager(File file) {
         this.file = file;
 <<<<<<< HEAD
+<<<<<<< HEAD
         load();
+=======
+>>>>>>> 707e19a (Борьба с тестами)
 =======
 >>>>>>> 707e19a (Борьба с тестами)
     }
@@ -47,6 +50,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private String taskToString(Task task) {
+<<<<<<< HEAD
 <<<<<<< HEAD
         return String.format("%d,%s,%s,%s,%s",
                 task.getId(),
@@ -103,6 +107,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             default:
                 throw new IllegalArgumentException("Неизвестный тип задачи: " + type);
 =======
+=======
+>>>>>>> 707e19a (Борьба с тестами)
         StringBuilder sb = new StringBuilder();
         sb.append(task.getId()).append(",");
         if (task instanceof Epic) {
@@ -111,6 +117,9 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             sb.append(TaskType.SUBTASK);
         } else {
             sb.append(TaskType.TASK);
+<<<<<<< HEAD
+>>>>>>> 707e19a (Борьба с тестами)
+=======
 >>>>>>> 707e19a (Борьба с тестами)
         }
         sb.append(",").append(task.getName());
@@ -125,12 +134,16 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     protected void load() {
 =======
+=======
+>>>>>>> 707e19a (Борьба с тестами)
     public static FileBackedTaskManager loadFromFile(File file) throws ManagerSaveException {
         FileBackedTaskManager manager = new FileBackedTaskManager(file);
         int maxId = 0;
 
+<<<<<<< HEAD
 >>>>>>> 707e19a (Борьба с тестами)
         if (!file.exists()) {
             return manager;
@@ -153,6 +166,29 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                         maxId = taskId;
                     }
 
+=======
+        if (!file.exists()) {
+            return manager;
+        }
+
+        try {
+            String content = Files.readString(file.toPath());
+            String[] lines = content.split("\n");
+
+            if (lines.length > 0) {
+                for (int i = 1; i < lines.length; i++) {
+                    String line = lines[i];
+                    if (line.isBlank()) continue;
+
+                    Task task = fromString(line);
+                    if (task == null) continue;
+
+                    int taskId = task.getId();
+                    if (taskId > maxId) {
+                        maxId = taskId;
+                    }
+
+>>>>>>> 707e19a (Борьба с тестами)
                     if (task instanceof Epic) {
                         manager.epics.put(taskId, (Epic) task);
                     } else if (task instanceof Subtask) {
