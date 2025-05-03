@@ -10,8 +10,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
 
@@ -19,13 +17,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     public FileBackedTaskManager(File file) {
         this.file = file;
-<<<<<<< HEAD
-<<<<<<< HEAD
-        load();
-=======
->>>>>>> 707e19a (Борьба с тестами)
-=======
->>>>>>> 707e19a (Борьба с тестами)
     }
 
     private void save() throws ManagerSaveException {
@@ -50,65 +41,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private String taskToString(Task task) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        return String.format("%d,%s,%s,%s,%s",
-                task.getId(),
-                TaskType.TASK,
-                task.getName(),
-                task.getStatus(),
-                task.getDescription());
-    }
-
-    private String epicToString(Epic epic) {
-        return String.format("%d,%s,%s,%s,%s",
-                epic.getId(),
-                TaskType.EPIC,
-                epic.getName(),
-                epic.getStatus(),
-                epic.getDescription());
-    }
-
-    private String subtaskToString(Subtask subtask) {
-        return String.format("%d,%s,%s,%s,%s,%d",
-                subtask.getId(),
-                TaskType.SUBTASK,
-                subtask.getName(),
-                subtask.getStatus(),
-                subtask.getDescription(),
-                subtask.getEpicId());
-    }
-
-    private Task fromString(String value) {
-        String[] parts = value.split(",");
-        int id = Integer.parseInt(parts[0]);
-        TaskType type = TaskType.valueOf(parts[1]);
-        String name = parts[2];
-        TaskStatus status = TaskStatus.valueOf(parts[3]);
-        String description = parts[4];
-
-        switch (type) {
-            case TASK:
-                Task task = new Task(name, description);
-                task.setId(id);
-                task.setStatus(status);
-                return task;
-            case EPIC:
-                Epic epic = new Epic(name, description);
-                epic.setId(id);
-                epic.setStatus(status);
-                return epic;
-            case SUBTASK:
-                int epicId = Integer.parseInt(parts[5]);
-                Subtask subtask = new Subtask(name, description, epicId);
-                subtask.setId(id);
-                subtask.setStatus(status);
-                return subtask;
-            default:
-                throw new IllegalArgumentException("Неизвестный тип задачи: " + type);
-=======
-=======
->>>>>>> 707e19a (Борьба с тестами)
         StringBuilder sb = new StringBuilder();
         sb.append(task.getId()).append(",");
         if (task instanceof Epic) {
@@ -117,10 +49,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             sb.append(TaskType.SUBTASK);
         } else {
             sb.append(TaskType.TASK);
-<<<<<<< HEAD
->>>>>>> 707e19a (Борьба с тестами)
-=======
->>>>>>> 707e19a (Борьба с тестами)
         }
         sb.append(",").append(task.getName());
         sb.append(",").append(task.getStatus());
@@ -133,18 +61,10 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         return sb.toString();
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    protected void load() {
-=======
-=======
->>>>>>> 707e19a (Борьба с тестами)
     public static FileBackedTaskManager loadFromFile(File file) throws ManagerSaveException {
         FileBackedTaskManager manager = new FileBackedTaskManager(file);
         int maxId = 0;
 
-<<<<<<< HEAD
->>>>>>> 707e19a (Борьба с тестами)
         if (!file.exists()) {
             return manager;
         }
@@ -166,29 +86,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                         maxId = taskId;
                     }
 
-=======
-        if (!file.exists()) {
-            return manager;
-        }
-
-        try {
-            String content = Files.readString(file.toPath());
-            String[] lines = content.split("\n");
-
-            if (lines.length > 0) {
-                for (int i = 1; i < lines.length; i++) {
-                    String line = lines[i];
-                    if (line.isBlank()) continue;
-
-                    Task task = fromString(line);
-                    if (task == null) continue;
-
-                    int taskId = task.getId();
-                    if (taskId > maxId) {
-                        maxId = taskId;
-                    }
-
->>>>>>> 707e19a (Борьба с тестами)
                     if (task instanceof Epic) {
                         manager.epics.put(taskId, (Epic) task);
                     } else if (task instanceof Subtask) {

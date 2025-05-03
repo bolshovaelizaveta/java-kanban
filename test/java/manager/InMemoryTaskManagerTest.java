@@ -39,7 +39,6 @@ public class InMemoryTaskManagerTest {
 
     @Test
     void inMemoryTaskManager_addDifferentTaskTypesAndFindById() {
-
         Task task = new Task("Test Task", "Test Description");
         int taskId = taskManager.createTask(task);
         Epic epic = new Epic("Test Epic", "Test Description");
@@ -71,7 +70,6 @@ public class InMemoryTaskManagerTest {
 
     @Test
     void addNewTask() {
-
         Task task = new Task("Test addNewTask", "Test addNewTask description");
         final int taskId = taskManager.createTask(task);
         final Task savedTask = taskManager.getTask(taskId);
