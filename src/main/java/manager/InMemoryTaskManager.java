@@ -10,24 +10,11 @@ import java.util.HashMap;
 import java.util.List;
 
 public class InMemoryTaskManager implements TaskManager {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    private final HashMap<Integer, Task> tasks = new HashMap<>();
-    private final HashMap<Integer, Epic> epics = new HashMap<>();
-    private final HashMap<Integer, Subtask> subtasks = new HashMap<>();
-    private int idCounter = 0;
-    private final HistoryManager historyManager = Managers.getDefaultHistory(); // Да, идеа начала не видеть пакет
-    // и предложила импортировать (я подумала она про import в начале кода), ну я и нажала alt + enter и не обратила внимание что произошло...
-    // Да, я разобралась, всё наладила.
-=======
-=======
->>>>>>> 707e19a (Борьба с тестами)
     protected final HashMap<Integer, Task> tasks = new HashMap<>();
     protected final HashMap<Integer, Epic> epics = new HashMap<>();
     protected final HashMap<Integer, Subtask> subtasks = new HashMap<>();
     protected int idCounter = 0;
     private final HistoryManager historyManager = Managers.getDefaultHistory();
->>>>>>> 707e19a (Борьба с тестами)
 
     @Override
     public List<Task> getTasks() {
@@ -74,14 +61,7 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void deleteTask(int id) {
         tasks.remove(id);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
         historyManager.remove(id);
->>>>>>> 707e19a (Борьба с тестами)
-=======
-        historyManager.remove(id);
->>>>>>> 707e19a (Борьба с тестами)
     }
 
     @Override
@@ -90,22 +70,10 @@ public class InMemoryTaskManager implements TaskManager {
         if (epic != null) {
             for (int subtaskId : epic.getSubtaskIds()) {
                 subtasks.remove(subtaskId);
-<<<<<<< HEAD
-<<<<<<< HEAD
-            }
-            epics.remove(id);
-=======
                 historyManager.remove(subtaskId);
             }
             epics.remove(id);
             historyManager.remove(id);
->>>>>>> 707e19a (Борьба с тестами)
-=======
-                historyManager.remove(subtaskId);
-            }
-            epics.remove(id);
-            historyManager.remove(id);
->>>>>>> 707e19a (Борьба с тестами)
         }
     }
 
@@ -118,14 +86,7 @@ public class InMemoryTaskManager implements TaskManager {
                 epic.removeSubtaskId(id);
                 updateEpicStatus(epic);
             }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
             historyManager.remove(id);
->>>>>>> 707e19a (Борьба с тестами)
-=======
-            historyManager.remove(id);
->>>>>>> 707e19a (Борьба с тестами)
         }
     }
 
@@ -238,7 +199,7 @@ public class InMemoryTaskManager implements TaskManager {
         for (int subtaskId : epic.getSubtaskIds()) {
             Subtask subtask = subtasks.get(subtaskId);
             if (subtask == null) {
-                System.err.println("Предупреждение: Subtask с ID " + subtaskId + " не найдено для Epic " + epic.getId());
+                System.err.println("Warning: Subtask with ID " + subtaskId + " not found for Epic " + epic.getId());
                 allDone = false;
                 allNew = false;
                 continue;
