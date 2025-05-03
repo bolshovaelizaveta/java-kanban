@@ -20,7 +20,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     public FileBackedTaskManager(File file) {
         this.file = file;
-        loadFromFile(file);
+        load();
     }
 
     protected void save() {
@@ -54,7 +54,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private String taskToString(Task task) {
-        return String.format("%d,%s,%s,%s,%s,",
+        return String.format("%d,%s,%s,%s,%s",
                 task.getId(),
                 TaskType.TASK,
                 task.getName(),
@@ -63,7 +63,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private String epicToString(Epic epic) {
-        return String.format("%d,%s,%s,%s,%s,",
+        return String.format("%d,%s,%s,%s,%s",
                 epic.getId(),
                 TaskType.EPIC,
                 epic.getName(),
@@ -111,7 +111,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         }
     }
 
-    protected void loadFromFile(File file) {
+    protected void load() {
         if (!file.exists()) {
             return;
         }

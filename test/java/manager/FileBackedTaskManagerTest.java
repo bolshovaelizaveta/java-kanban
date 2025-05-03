@@ -3,96 +3,111 @@ package manager;
 import model.Epic;
 import model.Subtask;
 import model.Task;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FileBackedTaskManagerTest {
+public class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
 
-    @Test
-    void shouldSaveAndLoadEmptyTaskManager() throws IOException {
-        File tempFile = File.createTempFile("empty_tasks", ".csv");
-        tempFile.deleteOnExit();
+    private File tempFile;
 
-        FileBackedTaskManager taskManager1 = new FileBackedTaskManager(tempFile);
-        taskManager1.save();
+    @Override
+    @BeforeEach
+    public void createManagerForTest() throws IOException {
+        tempFile = File.createTempFile("test_tasks", ".csv");
+        taskManager = new FileBackedTaskManager(tempFile.toPath());
+        createTestTasks();
+        createTestHistory();
+    }
 
-        FileBackedTaskManager taskManager2 = new FileBackedTaskManager(tempFile);
-
-        assertTrue(taskManager2.getTasks().isEmpty(), "Задачи должны быть пустыми.");
-        assertTrue(taskManager2.getEpics().isEmpty(), "Эпики должны быть пустыми.");
-        assertTrue(taskManager2.getSubtasks().isEmpty(), "Подзадачи должны быть пустыми.");
-        assertTrue(taskManager2.getHistory().isEmpty(), "История должна быть пустой.");
+    @Override
+    @AfterEach
+    public void clear() {
+        taskManager.removeAllTasks();
+        taskManager.removeAllEpics();
+        taskManager.removeAllSubtasks();
+        tempFile.delete();
     }
 
     @Test
-    void shouldSaveAndLoadSingleTask() throws IOException {
-        File tempFile = File.createTempFile("single_task", ".csv");
-        tempFile.deleteOnExit();
-
-        FileBackedTaskManager taskManager1 = new FileBackedTaskManager(tempFile);
-        Task task = new Task("Test Task", "Test Description");
-        taskManager1.createTask(task);
-        taskManager1.save();
-
-        FileBackedTaskManager taskManager2 = new FileBackedTaskManager(tempFile);
-        List<Task> tasks2 = taskManager2.getTasks();
-
-        assertEquals(1, tasks2.size(), "Должна быть одна задача.");
-        assertEquals(task, tasks2.get(0), "Задачи не совпадают.");
+    void testSaveAndLoadEmptyFile() throws IOException {
+        taskManager.save();
+        FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toPath());
+        assertTrue(loadedManager.getTasks().isEmpty(), "Задачи не пустые");
+        assertTrue(loadedManager.getEpics().isEmpty(), "Эпики не пустые");
+        assertTrue(loadedManager.getSubtasks().isEmpty(), "Подзадачи не пустые");
+        assertTrue(loadedManager.getHistory().isEmpty(), "История не пустая");
     }
 
     @Test
-    void shouldSaveAndLoadSingleEpicWithSubtask() throws IOException {
-        File tempFile = File.createTempFile("epic_with_subtask", ".csv");
-        tempFile.deleteOnExit();
-
-        FileBackedTaskManager taskManager1 = new FileBackedTaskManager(tempFile);
-        Epic epic = new Epic("Test Epic", "Test Description");
-        int epicId = taskManager1.createEpic(epic);
-        Subtask subtask = new Subtask("Test Subtask", "Sub Description", epicId);
-        taskManager1.createSubtask(subtask);
-        taskManager1.save();
-
-        FileBackedTaskManager taskManager2 = new FileBackedTaskManager(tempFile);
-        assertEquals(1, taskManager2.getEpics().size(), "Должен быть один эпик.");
-        assertEquals(epic, taskManager2.getEpics().getFirst(), "Эпики не совпадают.");
-        assertEquals(1, taskManager2.getSubtasks().size(), "Должна быть одна подзадача.");
-        assertEquals(subtask, taskManager2.getSubtasks().getFirst(), "Подзадачи не совпадают.");
-        assertEquals(epicId, taskManager2.getSubtasks().getFirst().getEpicId(), "ID эпика подзадачи не совпадает.");
-        assertEquals(1, taskManager2.getEpics().getFirst().getSubtaskIds().size(), "Эпик должен содержать ID подзадачи.");
-        assertEquals(epicId, taskManager2.getEpics().getFirst().getSubtaskIds().getFirst(), "ID подзадачи в эпике не совпадает.");
-    }
-
-    @Test
-    void shouldSaveAndLoadMultipleTasks() throws IOException {
-        File tempFile = File.createTempFile("multiple_tasks", ".csv");
-        tempFile.deleteOnExit();
-
-        FileBackedTaskManager taskManager1 = new FileBackedTaskManager(tempFile);
+    void testSaveMultipleTasks() throws IOException {
         Task task1 = new Task("Task 1", "Description 1");
-        taskManager1.createTask(task1);
-        Epic epic1 = new Epic("Epic 1", "Description 1");
-        taskManager1.createEpic(epic1);
-        int epicId1 = epic1.getId();
-        Subtask subtask1 = new Subtask("Subtask 1", "Description 1", epicId1);
-        taskManager1.createSubtask(subtask1);
-        Task task2 = new Task("Task 2", "Description 2");
-        taskManager1.createTask(task2);
-        taskManager1.save();
+        Epic epic1 = new Epic("Epic 1", "Description Epic 1");
+        Subtask subtask1 = new Subtask("Subtask 1", "Description Subtask 1", epic1.getId());
 
-        FileBackedTaskManager taskManager2 = new FileBackedTaskManager(tempFile);
-        assertEquals(2, taskManager2.getTasks().size(), "Должно быть две задачи.");
-        assertEquals(1, taskManager2.getEpics().size(), "Должен быть один эпик.");
-        assertEquals(1, taskManager2.getSubtasks().size(), "Должна быть одна подзадача.");
+        taskManager.createTask(task1);
+        taskManager.createEpic(epic1);
+        taskManager.createSubtask(subtask1);
+        taskManager.save();
 
-        assertTrue(taskManager2.getTasks().contains(task1), "Задача 1 должна присутствовать.");
-        assertTrue(taskManager2.getTasks().contains(task2), "Задача 2 должна присутствовать.");
-        assertTrue(taskManager2.getEpics().contains(epic1), "Эпик 1 должен присутствовать.");
-        assertTrue(taskManager2.getSubtasks().contains(subtask1), "Подзадача 1 должна присутствовать.");
+        List<String> lines = Files.readAllLines(tempFile.toPath());
+        assertTrue(lines.size() > 1, "Файл должен содержать данные");
+        assertTrue(lines.get(0).contains("id,type,name,status,description,epic"), "Заголовок неверный");
+        assertTrue(lines.stream().anyMatch(line -> line.contains("TASK,Task 1")), "Задача не найдена");
+        assertTrue(lines.stream().anyMatch(line -> line.contains("EPIC,Epic 1")), "Эпик не найден");
+        assertTrue(lines.stream().anyMatch(line -> line.contains("SUBTASK,Subtask 1")), "Подзадача не найдена");
     }
+
+    @Test
+    void testLoadMultipleTasks() throws IOException {
+        Task task1 = new Task("Task 1", "Description 1");
+        Epic epic1 = new Epic("Epic 1", "Description Epic 1");
+        Subtask subtask1 = new Subtask("Subtask 1", "Description Subtask 1", 1); // Предполагаем ID
+
+        taskManager.createTask(task1);
+        taskManager.createEpic(epic1);
+        taskManager.createSubtask(subtask1);
+        taskManager.save();
+
+        FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toPath());
+        assertEquals(taskManager.getTasks().size(), loadedManager.getTasks().size(), "Количество задач не совпадает");
+        assertEquals(taskManager.getEpics().size(), loadedManager.getEpics().size(), "Количество эпиков не совпадает");
+        assertEquals(taskManager.getSubtasks().size(), loadedManager.getSubtasks().size(), "Количество подзадач не совпадает");
+        // Добавьте более детальное сравнение содержимого задач (по equals() после его реализации)
+    }
+
+    // Переопределенные тесты из TaskManagerTest с вызовом saveLoadTest()
+    @Override
+    @Test
+    protected void addTaskTest() {
+        super.addTaskTest();
+        saveLoadTest();
+    }
+
+    @Override
+    @Test
+    protected void getTaskByIdTest() {
+        super.getTaskByIdTest();
+        saveLoadTest();
+    }
+
+    // ... и другие переопределенные тесты ...
+
+    protected void saveLoadTest() {
+        FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toPath());
+        assertEquals(taskManager.getTasks().size(), loadedManager.getTasks().size(), "Количество задач после сохранения/загрузки не совпадает");
+        assertEquals(taskManager.getEpics().size(), loadedManager.getEpics().size(), "Количество эпиков после сохранения/загрузки не совпадает");
+        assertEquals(taskManager.getSubtasks().size(), loadedManager.getSubtasks().size(), "Количество подзадач после сохранения/загрузки не совпадает");
+        assertEquals(taskManager.getHistory().size(), loadedManager.getHistory().size(), "Размер истории после сохранения/загрузки не совпадает");
+        // Добавьте более детальное сравнение содержимого коллекций (возможно, итерация и сравнение equals())
+    }
+
+    // Методы createTestTasks() и createTestHistory() (реализуйте их в этом классе)
 }
