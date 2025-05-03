@@ -10,10 +10,10 @@ import java.util.HashMap;
 import java.util.List;
 
 public class InMemoryTaskManager implements TaskManager {
-    private final HashMap<Integer, Task> tasks = new HashMap<>();
-    private final HashMap<Integer, Epic> epics = new HashMap<>();
-    private final HashMap<Integer, Subtask> subtasks = new HashMap<>();
-    private int idCounter = 0;
+    protected final HashMap<Integer, Task> tasks = new HashMap<>();
+    protected final HashMap<Integer, Epic> epics = new HashMap<>();
+    protected final HashMap<Integer, Subtask> subtasks = new HashMap<>();
+    protected int idCounter = 0;
     private final HistoryManager historyManager = Managers.getDefaultHistory();
 
     @Override
@@ -61,7 +61,7 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void deleteTask(int id) {
         tasks.remove(id);
-        historyManager.remove(id); // Удаляем по id
+        historyManager.remove(id);
     }
 
     @Override
@@ -70,10 +70,10 @@ public class InMemoryTaskManager implements TaskManager {
         if (epic != null) {
             for (int subtaskId : epic.getSubtaskIds()) {
                 subtasks.remove(subtaskId);
-                historyManager.remove(subtaskId); // Удаляем по id
+                historyManager.remove(subtaskId);
             }
             epics.remove(id);
-            historyManager.remove(id); // Удаляем по id
+            historyManager.remove(id);
         }
     }
 
@@ -86,7 +86,7 @@ public class InMemoryTaskManager implements TaskManager {
                 epic.removeSubtaskId(id);
                 updateEpicStatus(epic);
             }
-            historyManager.remove(id); // Удаляем по id
+            historyManager.remove(id);
         }
     }
 
@@ -159,7 +159,10 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void removeAllTasks() {
         tasks.clear();
+        epics.clear();
+        subtasks.clear();
     }
+
 
     @Override
     public void removeAllEpics() {
@@ -179,25 +182,27 @@ public class InMemoryTaskManager implements TaskManager {
         subtasks.clear();
     }
 
-    private int generateId() {
+
+    protected int generateId() {
         return ++idCounter;
     }
 
-    private void updateEpicStatus(Epic epic) {
+    protected void updateEpicStatus(Epic epic) {
         if (epic.getSubtaskIds().isEmpty()) {
             epic.setStatus(TaskStatus.NEW);
             return;
         }
 
-        TaskStatus newStatus = TaskStatus.NEW;
         boolean allNew = true;
         boolean allDone = true;
 
         for (int subtaskId : epic.getSubtaskIds()) {
             Subtask subtask = subtasks.get(subtaskId);
             if (subtask == null) {
-                epic.setStatus(TaskStatus.NEW);
-                return;
+                System.err.println("Предупреждение: Subtask с ID " + subtaskId + " не найдено для Epic " + epic.getId());
+                allDone = false;
+                allNew = false;
+                continue;
             }
             TaskStatus status = subtask.getStatus();
             if (status != TaskStatus.DONE) {
@@ -209,27 +214,11 @@ public class InMemoryTaskManager implements TaskManager {
         }
 
         if (allDone) {
-            newStatus = TaskStatus.DONE;
+            epic.setStatus(TaskStatus.DONE);
         } else if (!allNew) {
-            newStatus = TaskStatus.IN_PROGRESS;
+            epic.setStatus(TaskStatus.IN_PROGRESS);
+        } else {
+            epic.setStatus(TaskStatus.NEW);
         }
-
-        epic.setStatus(newStatus);
-    }
-
-    public HistoryManager getHistoryManager() {
-        return historyManager;
-    }
-
-    public HashMap<Integer, Task> getTasksMap() {
-        return tasks;
-    }
-
-    public HashMap<Integer, Epic> getEpicsMap() {
-        return epics;
-    }
-
-    public HashMap<Integer, Subtask> getSubtasksMap() {
-        return subtasks;
     }
 }
