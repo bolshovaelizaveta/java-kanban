@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Comparator;
 import java.util.TreeSet;
+import java.util.Collection;
 import java.util.stream.Collectors;
 
 public class InMemoryTaskManager implements TaskManager {
@@ -71,7 +72,7 @@ public class InMemoryTaskManager implements TaskManager {
         Task task = tasks.remove(id);
         if(task != null) {
             historyManager.remove(id);
-            if (task.getStartTime() != null) {
+            if(task.getStartTime() != null) {
                 prioritizedTasks.remove(task);
             }
         }
@@ -82,14 +83,14 @@ public class InMemoryTaskManager implements TaskManager {
         Epic epic = epics.remove(id);
         if(epic != null) {
             historyManager.remove(id);
-            if (epic.getStartTime() != null) {
+            if(epic.getStartTime() != null) {
                 prioritizedTasks.remove(epic);
             }
             for (int subtaskId : epic.getSubtaskIds()) {
                 Subtask subtask = subtasks.remove(subtaskId);
-                if (subtask != null) {
+                if(subtask != null) {
                     historyManager.remove(subtaskId);
-                    if (subtask.getStartTime() != null) {
+                    if(subtask.getStartTime() != null) {
                         prioritizedTasks.remove(subtask);
                     }
                 }
@@ -102,7 +103,7 @@ public class InMemoryTaskManager implements TaskManager {
         Subtask subtask = subtasks.remove(id);
         if(subtask != null) {
             historyManager.remove(id);
-            if (subtask.getStartTime() != null) {
+            if(subtask.getStartTime() != null) {
                 prioritizedTasks.remove(subtask);
             }
             Epic epic = epics.get(subtask.getEpicId());
@@ -191,7 +192,7 @@ public class InMemoryTaskManager implements TaskManager {
 
 
             subtasks.put(subtask.getId(), subtask);
-            if (subtask.getStartTime() != null) {
+            if(subtask.getStartTime() != null) {
                 prioritizedTasks.add(subtask);
             } else if (oldSubtask != null && oldSubtask.getStartTime() != null) {
                 prioritizedTasks.remove(subtask);
@@ -215,7 +216,7 @@ public class InMemoryTaskManager implements TaskManager {
 
         task.setId(generateId());
         tasks.put(task.getId(), task);
-        if (task.getStartTime() != null) {
+        if(task.getStartTime() != null) {
             prioritizedTasks.add(task);
         }
         return task.getId();
@@ -245,7 +246,7 @@ public class InMemoryTaskManager implements TaskManager {
         subtask.setId(generateId());
         subtasks.put(subtask.getId(), subtask);
         epic.addSubtaskId(subtask.getId());
-        if (subtask.getStartTime() != null) {
+        if(subtask.getStartTime() != null) {
             prioritizedTasks.add(subtask);
         }
         calculateEpicTimesAndStatus(epic);
@@ -376,7 +377,7 @@ public class InMemoryTaskManager implements TaskManager {
         }
 
         prioritizedTasks.remove(epic);
-        if (epic.getStartTime() != null) {
+        if(epic.getStartTime() != null) {
             prioritizedTasks.add(epic);
         }
     }
@@ -401,7 +402,7 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     protected boolean hasIntersections(Task task) {
-        if (task.getStartTime() == null || task.getDuration() == null) {
+        if(task.getStartTime() == null || task.getDuration() == null) {
             return false;
         }
 

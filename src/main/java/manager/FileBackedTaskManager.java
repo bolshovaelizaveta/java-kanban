@@ -45,7 +45,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         }
     }
 
-    // Метод для преобразования задачи в строку для файла
     private String taskToString(Task task) {
         StringBuilder sb = new StringBuilder();
         sb.append(task.getId()).append(",");
@@ -148,7 +147,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         return manager;
     }
 
-    // Метод для преобразования строки из файла в объект задачи
     private static Optional<Task> fromString(String value) {
         String[] parts = value.split(",");
         if (parts.length < 5) {
