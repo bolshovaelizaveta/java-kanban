@@ -387,7 +387,7 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     protected boolean isIntersecting(Task task1, Task task2) {
-        if (task1.getStartTime() == null || task1.getDuration() == null || task2.getStartTime() == null || task2.getDuration() == null) {
+        if(task1.getStartTime() == null || task1.getDuration() == null || task2.getStartTime() == null || task2.getDuration() == null) {
             return false;
         }
 
