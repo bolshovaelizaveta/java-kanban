@@ -42,13 +42,11 @@ public interface TaskManager {
     List<Task> getHistory();
 
     void removeAllTasks();
-<<<<<<< HEAD
-    void removeAllEpics();
-=======
 
     void removeAllEpics();
 
->>>>>>> ded474ad64c5d23eb40b39370eae4d8bc87bc97a
     void removeAllSubtasks();
+
+    List<Task> getPrioritizedTasks();
 }
 
