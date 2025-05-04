@@ -199,7 +199,11 @@ public class InMemoryTaskManager implements TaskManager {
         for (int subtaskId : epic.getSubtaskIds()) {
             Subtask subtask = subtasks.get(subtaskId);
             if (subtask == null) {
+<<<<<<< HEAD
                 System.err.println("Предупреждение: Subtask с ID " + subtaskId + " не найдено для Epic " + epic.getId());
+=======
+                System.err.println("Warning: Subtask with ID " + subtaskId + " not found for Epic " + epic.getId());
+>>>>>>> ded474ad64c5d23eb40b39370eae4d8bc87bc97a
                 allDone = false;
                 allNew = false;
                 continue;
