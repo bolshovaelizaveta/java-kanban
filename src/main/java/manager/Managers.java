@@ -1,7 +1,5 @@
 package manager;
 
-import model.Task;
-
 public class Managers {
     public static TaskManager getDefault() {
         return new InMemoryTaskManager();
