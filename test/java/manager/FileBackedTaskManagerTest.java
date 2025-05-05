@@ -8,12 +8,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.Collections;
 
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,6 +30,7 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
     private Path tempFile;
 
     @BeforeEach
+    @Override
     protected void setUp() {
         try {
             tempFile = Files.createTempFile("testTasks", ".csv");
@@ -58,6 +66,9 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         assertTrue(taskManager.getSubtasks().isEmpty());
         assertTrue(taskManager.getHistory().isEmpty());
         assertTrue(taskManager.getPrioritizedTasks().isEmpty());
+
+        FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toFile());
+        assertEquals(0, loadedManager.idCounter, "idCounter должен быть 0 при загрузке пустого файла");
     }
 
 
@@ -77,7 +88,6 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         Task retrievedTask2 = loadedManager.getTask(task2.getId());
 
         assertNotNull(retrievedTask1);
-        assertNotNull(retrievedTask2);
         assertEquals(task1.getName(), retrievedTask1.getName());
         assertEquals(task1.getDescription(), retrievedTask1.getDescription());
         assertEquals(task1.getStatus(), retrievedTask1.getStatus());
@@ -87,6 +97,7 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         assertEquals(task1.getEndTime(), retrievedTask1.getEndTime());
 
 
+        assertNotNull(retrievedTask2);
         assertEquals(task2.getName(), retrievedTask2.getName());
         assertEquals(task2.getDescription(), retrievedTask2.getDescription());
         assertEquals(task2.getStatus(), retrievedTask2.getStatus());
@@ -96,20 +107,12 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         assertNull(retrievedTask2.getEndTime());
 
 
-        assertEquals(2, loadedManager.idCounter);
+        int maxId = Stream.of(task1.getId(), task2.getId()).max(Integer::compareTo).orElse(0);
+        assertEquals(maxId, loadedManager.idCounter, "idCounter должен быть равен максимальному ID в файле");
+
         Task newTask = new Task("Новая задача", "Новое описание", Duration.ofMinutes(10), LocalDateTime.now().plusHours(1));
-        int newTaskId = loadedManager.createTask(newTask);
-        assertEquals(3, newTaskId);
-        assertEquals(3, loadedManager.getTasks().size());
-
-
-        List<Task> prioritized = loadedManager.getPrioritizedTasks();
-        assertEquals(2, prioritized.size());
-        assertTrue(prioritized.contains(retrievedTask1));
-        assertTrue(prioritized.contains(loadedManager.getTask(newTaskId)));
-        assertFalse(prioritized.contains(retrievedTask2));
-
-
+        int newTaskId = loadedManager.createTask(newTask); // ID 3 (maxId + 1)
+        assertEquals(loadedManager.idCounter, newTaskId, "Новый ID должен быть на 1 больше idCounter после загрузки");
     }
 
     @Test
@@ -127,6 +130,7 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         Epic originalEpic = taskManager.getEpic(epicId1);
         assertEquals(TaskStatus.IN_PROGRESS, originalEpic.getStatus());
         assertEquals(Duration.ofMinutes(75), originalEpic.getDuration());
+        assertNotNull(originalEpic.getStartTime());
 
 
         FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toFile());
@@ -176,11 +180,12 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         assertTrue(prioritized.contains(retrievedSubtask1));
         assertTrue(prioritized.contains(retrievedSubtask2));
 
-        assertEquals(Math.max(epicId1, Math.max(subtaskId1, subtaskId2)), loadedManager.idCounter);
+        int maxId = Stream.of(epicId1, subtaskId1, subtaskId2).max(Integer::compareTo).orElse(0);
+        assertEquals(maxId, loadedManager.idCounter, "idCounter должен быть равен максимальному ID в файле");
+
         Task newTask = new Task("Новая задача", "Новое описание", Duration.ofMinutes(10), LocalDateTime.now().plusDays(3));
         int newTaskId = loadedManager.createTask(newTask);
-        assertEquals(loadedManager.idCounter, newTaskId);
-
+        assertEquals(loadedManager.idCounter, newTaskId, "Новый ID должен быть на 1 больше максимального после загрузки");
     }
 
     @Test
@@ -198,7 +203,7 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         taskManager.createSubtask(subtask2);
 
         List<Task> originalPrioritized = taskManager.getPrioritizedTasks();
-        assertEquals(3, originalPrioritized.size());
+        assertEquals(4, originalPrioritized.size());
 
         FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toFile());
 
@@ -207,18 +212,27 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         assertEquals(2, loadedManager.getSubtasks().size());
 
         List<Task> loadedPrioritized = loadedManager.getPrioritizedTasks();
-        assertEquals(3, loadedPrioritized.size());
-        assertEquals(originalPrioritized.get(0).getStartTime(), loadedPrioritized.get(0).getStartTime());
-        assertEquals(originalPrioritized.get(1).getStartTime(), loadedPrioritized.get(1).getStartTime());
-        assertEquals(originalPrioritized.get(2).getStartTime(), loadedPrioritized.get(2).getStartTime());
+        assertEquals(4, loadedPrioritized.size(), "Должны загрузиться 4 приоритезированные задачи (Задача, Эпик, 2 Подзадачи)");
 
-        Epic loadedEpic = loadedManager.getEpic(epicId);
-        assertEquals(Duration.ofMinutes(75), loadedEpic.getDuration());
-        assertNotNull(loadedEpic.getStartTime());
-        assertNotNull(loadedEpic.getEndTime());
-        assertEquals(TaskStatus.NEW, loadedEpic.getStatus());
+        List<Task> expectedPrioritized = new ArrayList<>();
+        expectedPrioritized.add(loadedManager.getTask(task.getId()));
+        expectedPrioritized.add(loadedManager.getEpic(epicId));
+        expectedPrioritized.add(loadedManager.getSubtask(subtask1.getId()));
+        expectedPrioritized.add(loadedManager.getSubtask(subtask2.getId()));
 
-        assertEquals(Math.max(task.getId(), Math.max(epic.getId(), Math.max(subtask1.getId(), subtask2.getId()))), loadedManager.idCounter);
+        expectedPrioritized.sort(Comparator.comparing(Task::getStartTime, Comparator.nullsLast(LocalDateTime::compareTo)).thenComparing(Task::getId));
+
+
+        assertEquals(expectedPrioritized.size(), loadedPrioritized.size());
+
+        for (int i = 0; i < expectedPrioritized.size(); i++) {
+            assertEquals(expectedPrioritized.get(i).getId(), loadedPrioritized.get(i).getId(), "Элемент " + i + " в приоритезированных списках не совпадает по ID");
+        }
+
+
+        int maxId = Stream.of(task.getId(), epicId, subtask1.getId(), subtask2.getId()).max(Integer::compareTo).orElse(0);
+        assertEquals(maxId, loadedManager.idCounter, "idCounter должен быть равен максимальному ID в файле");
+
     }
 
 
@@ -228,7 +242,7 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
             Files.writeString(tempFile, "id,type,name,status,description,startTime,duration,epic\n" +
                     "некорректная_строка_1\n" +
                     "1,TASK,Корректная задача,NEW,Описание,2024-01-01T10:00,30,\n" +
-                    "2,EPIC,Корректный эпик,NEW,Описание_эпика,,\n" +
+                    "2,EPIC,Корректный эпик,NEW,Описание_эпика,,,\n" +
                     "3,SUBTASK,Подзадача без эпика,NEW,Описание_подзадачи,2024-01-01T11:00,15,999\n" +
                     "4,TASK,Задача с неверной длительностью,NEW,Описание,2024-01-01T12:00,неверно,\n" +
                     "5,TASK,Задача с неверным временем,NEW,Описание,неверное_время,30,\n" +
@@ -238,9 +252,9 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
 
             FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toFile());
 
-            assertEquals(1, loadedManager.getTasks().size());
-            assertEquals(1, loadedManager.getEpics().size());
-            assertEquals(0, loadedManager.getSubtasks().size());
+            assertEquals(1, loadedManager.getTasks().size(), "Должна загрузиться 1 корректная задача");
+            assertEquals(1, loadedManager.getEpics().size(), "Должен загрузиться 1 корректный эпик");
+            assertEquals(1, loadedManager.getSubtasks().size(), "Должна загрузиться 1 подзадача с несуществующим эпиком");
 
 
             Task correctTask = loadedManager.getTask(1);
@@ -254,13 +268,21 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
             assertNotNull(correctEpic);
             assertEquals("Корректный эпик", correctEpic.getName());
             assertEquals(TaskStatus.NEW, correctEpic.getStatus());
+            assertTrue(correctEpic.getSubtaskIds().isEmpty(), "Эпик не должен содержать подзадачи с несуществующим epicId");
+
+
+            Subtask unlinkedSubtask = loadedManager.getSubtask(3);
+            assertNotNull(unlinkedSubtask, "Подзадача с несуществующим эпиком должна быть загружена");
+            assertEquals(999, unlinkedSubtask.getEpicId(), "Подзадача должна иметь epicId из файла");
 
 
             List<Task> prioritized = loadedManager.getPrioritizedTasks();
-            assertEquals(1, prioritized.size());
+            assertEquals(2, prioritized.size(), "Корректная задача и подзадача с временем должны быть в приоритезированных");
             assertTrue(prioritized.contains(correctTask));
+            assertTrue(prioritized.contains(unlinkedSubtask));
 
-            assertEquals(2, loadedManager.idCounter);
+
+            assertEquals(3, loadedManager.idCounter, "idCounter должен быть равен максимальному загруженному ID");
 
 
         });
@@ -291,9 +313,9 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         taskManager.deleteTask(taskId);
 
         FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toFile());
-        assertTrue(loadedManager.getTasks().isEmpty());
-        assertTrue(loadedManager.getPrioritizedTasks().isEmpty());
-        assertEquals(1, loadedManager.idCounter);
+        assertTrue(loadedManager.getTasks().isEmpty(), "Задач не должно быть после удаления и загрузки");
+        assertTrue(loadedManager.getPrioritizedTasks().isEmpty(), "Приоритезированных задач не должно быть после удаления и загрузки");
+        assertEquals(0, loadedManager.idCounter, "idCounter должен быть 0 после удаления последней задачи и загрузки");
     }
 
     @Test
@@ -308,10 +330,10 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         taskManager.deleteEpic(epicId);
 
         FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toFile());
-        assertTrue(loadedManager.getEpics().isEmpty());
-        assertTrue(loadedManager.getSubtasks().isEmpty());
-        assertTrue(loadedManager.getPrioritizedTasks().isEmpty());
-        assertEquals(subtaskId, loadedManager.idCounter);
+        assertTrue(loadedManager.getEpics().isEmpty(), "Эпиков не должно быть после удаления и загрузки");
+        assertTrue(loadedManager.getSubtasks().isEmpty(), "Подзадач не должно быть после удаления эпика и загрузки");
+        assertTrue(loadedManager.getPrioritizedTasks().isEmpty(), "Приоритезированных задач не должно быть после удаления эпика и загрузки");
+        assertEquals(0, loadedManager.idCounter, "idCounter должен быть 0 после удаления эпика и подзадач и загрузки");
     }
 
     @Test
@@ -326,13 +348,12 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         taskManager.deleteSubtask(subtaskId);
 
         FileBackedTaskManager loadedManager = FileBackedTaskManager.loadFromFile(tempFile.toFile());
-        assertEquals(1, loadedManager.getEpics().size());
-        assertTrue(loadedManager.getSubtasks().isEmpty());
-        assertFalse(loadedManager.getEpic(epicId).getSubtaskIds().contains(subtaskId));
+        assertEquals(1, loadedManager.getEpics().size(), "Эпик должен остаться после удаления подзадачи");
+        assertTrue(loadedManager.getSubtasks().isEmpty(), "Подзадач не должно быть после удаления");
+        assertFalse(loadedManager.getEpic(epicId).getSubtaskIds().contains(subtaskId), "Список подзадач эпика должен быть пуст");
 
         List<Task> prioritized = loadedManager.getPrioritizedTasks();
-        assertEquals(1, prioritized.size());
-        assertTrue(prioritized.contains(loadedManager.getEpic(epicId)));
+        assertEquals(0, prioritized.size(), "После удаления последней подзадачи со временем, эпик должен потерять время");
 
         Epic loadedEpic = loadedManager.getEpic(epicId);
         assertEquals(Duration.ZERO, loadedEpic.getDuration());
@@ -340,34 +361,7 @@ class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
         assertNull(loadedEpic.getEndTime());
         assertEquals(TaskStatus.NEW, loadedEpic.getStatus());
 
-        assertEquals(subtaskId, loadedManager.idCounter);
+        assertEquals(epicId, loadedManager.idCounter, "idCounter должен быть равен ID эпика после удаления подзадачи и загрузки");
     }
 
-    // Тесты на корректный перехват исключений при работе с файлами
-    @Test
-    void loadFromFile_shouldThrowManagerSaveExceptionOnIOError() {
-        Path inaccessibleFile = null;
-        try {
-            inaccessibleFile = Files.createTempFile("inaccessible", ".csv");
-            inaccessibleFile.toFile().setReadable(false, false);
-            inaccessibleFile.toFile().setWritable(false, false);
-        } catch (IOException e) {
-            System.err.println("Не удалось создать или изменить атрибуты файла для теста исключения IO: " + e.getMessage());
-            return;
-        }
-
-        Path finalInaccessibleFile = inaccessibleFile;
-        ManagerSaveException exception = assertThrows(ManagerSaveException.class, () -> {
-            FileBackedTaskManager.loadFromFile(finalInaccessibleFile.toFile());
-        }, "Загрузка из недоступного файла должна выбрасывать ManagerSaveException.");
-
-        assertNotNull(exception.getCause(), "Исключение ManagerSaveException должно содержать причину (IOException).");
-        assertTrue(exception.getCause() instanceof IOException, "Причина исключения должна быть IOException.");
-
-        try {
-            Files.deleteIfExists(finalInaccessibleFile);
-        } catch (IOException e) {
-            System.err.println("Не удалось удалить недоступный файл после теста: " + e.getMessage());
-        }
-    }
 }

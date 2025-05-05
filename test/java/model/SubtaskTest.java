@@ -22,7 +22,4 @@ public class SubtaskTest {
         assertNotEquals(subtask1, subtask2, "Подзадачи с разными ID не должны быть равны.");
     }
 
-    @Test
-    void subtaskCannotBeEpicOfItself() {
-    }
 }

@@ -13,10 +13,10 @@ import java.nio.file.Files;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Collection;
+import java.util.stream.Stream;
 
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
@@ -81,39 +81,43 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     public static FileBackedTaskManager loadFromFile(File file) throws ManagerSaveException {
         FileBackedTaskManager manager = new FileBackedTaskManager(file);
-        int maxId = 0;
 
         if (!file.exists()) {
-            return manager;
+            return manager; // Файл не существует, возвращаем пустой менеджер
         }
 
         try {
             String content = Files.readString(file.toPath());
             String[] lines = content.split("\n");
 
-            if (lines.length > 0) {
+            if (lines.length > 1) {
                 for (int i = 1; i < lines.length; i++) {
                     String line = lines[i];
                     if (line.isBlank()) continue;
 
                     Optional<Task> optionalTask = fromString(line);
-                    if (optionalTask.isEmpty()) continue;
+                    if (optionalTask.isEmpty()) {
+                        System.err.println("Пропущена некорректная строка при загрузке: " + line);
+                        continue;
+                    }
                     Task task = optionalTask.get();
 
-                    int taskId = task.getId();
-                    if (taskId > maxId) {
-                        maxId = taskId;
-                    }
-
                     if (task instanceof Epic) {
-                        manager.epics.put(taskId, (Epic) task);
+                        manager.epics.put(task.getId(), (Epic) task);
                     } else if (task instanceof Subtask) {
-                        manager.subtasks.put(taskId, (Subtask) task);
+                        manager.subtasks.put(task.getId(), (Subtask) task);
                     } else {
-                        manager.tasks.put(taskId, task);
+                        manager.tasks.put(task.getId(), task);
                     }
                 }
             }
+
+            int maxId = Stream.of(manager.tasks.keySet(), manager.epics.keySet(), manager.subtasks.keySet())
+                    .flatMap(Set::stream)
+                    .max(Integer::compareTo)
+                    .orElse(0);
+
+            manager.idCounter = maxId;
 
             for (Subtask subtask : manager.subtasks.values()) {
                 Epic epic = manager.epics.get(subtask.getEpicId());
@@ -122,7 +126,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 } else {
                     System.err.println("Предупреждение при загрузке: Подзадача с ID " + subtask.getId() +
                             " ссылается на несуществующий эпик с ID " + subtask.getEpicId() +
-                            ". Подзадача может быть некорректно связана.");
+                            ". Подзадача не будет привязана к эпику.");
                 }
             }
 
@@ -130,26 +134,12 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 manager.calculateEpicTimesAndStatus(epic);
             }
 
-            // Перестроение prioritizedTasks после загрузки всех задач и пересчета эпиков
-            manager.prioritizedTasks.clear(); // Очищаем на всякий случай перед заполнением
-            for (Task task : manager.tasks.values()) {
-                if (task.getStartTime() != null) {
-                    manager.prioritizedTasks.add(task);
-                }
-            }
-            for (Subtask subtask : manager.subtasks.values()) {
-                if (subtask.getStartTime() != null) {
-                    manager.prioritizedTasks.add(subtask);
-                }
-            }
-            for (Epic epic : manager.epics.values()) { // Добавляем эпики, если у них есть время (после пересчета)
-                if (epic.getStartTime() != null) {
-                    manager.prioritizedTasks.add(epic);
-                }
-            }
+            manager.prioritizedTasks.clear();
+            Stream.of(manager.tasks.values(), manager.epics.values(), manager.subtasks.values())
+                    .flatMap(Collection::stream)
+                    .filter(task -> task != null && task.getStartTime() != null)
+                    .forEach(manager.prioritizedTasks::add);
 
-
-            manager.idCounter = maxId;
 
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка загрузки задач из файла: " + file.getName(), e);
@@ -161,17 +151,24 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     private static Optional<Task> fromString(String value) {
         String[] parts = value.split(",");
         if (parts.length < 5) {
-            System.err.println("Некорректный формат строки: недостаточно основных полей: " + value);
             return Optional.empty();
         }
-
 
         try {
             int id = Integer.parseInt(parts[0]);
             TaskType type = TaskType.valueOf(parts[1]);
             String name = parts[2];
-            TaskStatus status = TaskStatus.valueOf(parts[3]);
+            String statusString = parts[3];
             String description = parts[4];
+
+            TaskStatus status;
+            try {
+                status = TaskStatus.valueOf(statusString);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Ошибка парсинга статуса в строке: " + value + " - " + e.getMessage());
+                return Optional.empty();
+            }
+
 
             LocalDateTime startTime = null;
             if (parts.length > 5 && !parts[5].isEmpty()) {
@@ -179,6 +176,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     startTime = LocalDateTime.parse(parts[5]);
                 } catch (DateTimeParseException e) {
                     System.err.println("Ошибка парсинга времени старта в строке: " + value + " - " + e.getMessage());
+                    return Optional.empty();
                 }
             }
 
@@ -189,32 +187,53 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     duration = Duration.ofMinutes(minutes);
                 } catch (NumberFormatException e) {
                     System.err.println("Ошибка парсинга длительности в строке: " + value + " - " + e.getMessage());
+                    return Optional.empty();
                 }
             }
 
 
             switch (type) {
                 case TASK:
-                    Task task = new Task(name, description, id, status, duration, startTime);
-                    return Optional.of(task);
-                case EPIC:
-                    // Для Epic время и длительность будут пересчитаны после загрузки подзадач
-                    Epic epic = new Epic(name, description, id, status);
-                    return Optional.of(epic);
-                case SUBTASK:
-                    if (parts.length < 8) {
-                        System.err.println("Некорректный формат строки для Subtask: отсутствует epicId: " + value);
+                    if (parts.length > 7 && !parts[7].isEmpty()) {
+                        System.err.println("Некорректный формат строки для Task: лишние поля или epicId: " + value);
                         return Optional.empty();
                     }
-                    int epicId = Integer.parseInt(parts[7]);
-                    Subtask subtask = new Subtask(name, description, id, status, epicId, duration, startTime);
-                    return Optional.of(subtask);
+                    return Optional.of(new Task(name, description, id, status, duration, startTime));
+                case EPIC:
+                    if (parts.length > 7 && !parts[7].isEmpty()) {
+                        System.err.println("Некорректный формат строки для Epic: лишние поля или epicId: " + value);
+                        return Optional.empty();
+                    }
+                    return Optional.of(new Epic(name, description, id, status));
+                case SUBTASK:
+                    if (parts.length < 8 || parts[7].isEmpty()) {
+                        System.err.println("Некорректный формат строки для Subtask: отсутствует или пустой epicId: " + value);
+                        return Optional.empty();
+                    }
+                    try {
+                        int epicId = Integer.parseInt(parts[7]);
+                        if (parts.length > 8) {
+                            System.err.println("Некорректный формат строки для Subtask: лишние поля после epicId: " + value);
+                            return Optional.empty();
+                        }
+                        return Optional.of(new Subtask(name, description, id, status, epicId, duration, startTime));
+                    } catch (NumberFormatException e) {
+                        System.err.println("Ошибка парсинга epicId в строке: " + value + " - " + e.getMessage());
+                        return Optional.empty();
+                    }
+
                 default:
                     System.err.println("Неизвестный тип задачи: " + type + " в строке: " + value);
                     return Optional.empty();
             }
-        } catch (IllegalArgumentException | ArrayIndexOutOfBoundsException e) {
-            System.err.println("Ошибка парсинга строки: " + value + " - " + e.getMessage());
+        } catch (NumberFormatException e) {
+            System.err.println("Ошибка парсинга ID в строке: " + value + " - " + e.getMessage());
+            return Optional.empty();
+        } catch (IllegalArgumentException e) {
+            System.err.println("Ошибка парсинга типа задачи в строке: " + value + " - " + e.getMessage());
+            return Optional.empty();
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.err.println("Некорректный формат строки: пропущены поля: " + value + " - " + e.getMessage());
             return Optional.empty();
         }
     }

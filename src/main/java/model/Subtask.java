@@ -2,30 +2,28 @@ package model;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
+
 
 public class Subtask extends Task {
-    private int epicId;
+    private final int epicId;
 
-    // Конструктор для создания подзадачи с временем/длительностью
+
     public Subtask(String name, String description, int epicId, Duration duration, LocalDateTime startTime) {
         super(name, description, duration, startTime);
         this.epicId = epicId;
     }
 
-    // Конструктор для загрузки подзадачи с ID, статусом, временем/длительностью
-    public Subtask(String name, String description, int id, TaskStatus status, int epicId, Duration duration, LocalDateTime startTime) {
-        super(name, description, id, status, duration, startTime);
-        this.epicId = epicId;
-    }
-
-
-    // Конструктор для создания подзадачи без указания времени/длительности
     public Subtask(String name, String description, int epicId) {
         super(name, description);
         this.epicId = epicId;
     }
 
-    // Конструктор для загрузки подзадачи без указания времени/длительности
+    public Subtask(String name, String description, int id, TaskStatus status, int epicId, Duration duration, LocalDateTime startTime) {
+        super(name, description, id, status, duration, startTime);
+        this.epicId = epicId;
+    }
+
     public Subtask(String name, String description, int id, TaskStatus status, int epicId) {
         super(name, description, id, status);
         this.epicId = epicId;
@@ -36,21 +34,19 @@ public class Subtask extends Task {
         return epicId;
     }
 
-    public void setEpicId(int epicId) {
-        this.epicId = epicId;
-    }
 
     @Override
     public String toString() {
         return "Subtask{" +
-                "epicId=" + epicId +
+                "id=" + id +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
-                ", id=" + id +
                 ", status=" + status +
+                ", epicId=" + epicId +
                 ", duration=" + duration +
                 ", startTime=" + startTime +
                 ", endTime=" + getEndTime() +
                 '}';
     }
+
 }

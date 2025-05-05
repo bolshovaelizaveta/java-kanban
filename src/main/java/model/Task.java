@@ -5,14 +5,14 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class Task {
+    protected int id;
     protected String name;
     protected String description;
-    protected int id;
     protected TaskStatus status;
     protected Duration duration;
     protected LocalDateTime startTime;
 
-    // Конструктор для создания задачи с указанием времени старта и продолжительности
+
     public Task(String name, String description, Duration duration, LocalDateTime startTime) {
         this.name = name;
         this.description = description;
@@ -21,7 +21,14 @@ public class Task {
         this.startTime = startTime;
     }
 
-    // Конструктор для загрузки задачи с указанием ID
+    public Task(String name, String description) {
+        this.name = name;
+        this.description = description;
+        this.status = TaskStatus.NEW;
+        this.duration = null;
+        this.startTime = null;
+    }
+
     public Task(String name, String description, int id, TaskStatus status, Duration duration, LocalDateTime startTime) {
         this.name = name;
         this.description = description;
@@ -31,16 +38,6 @@ public class Task {
         this.startTime = startTime;
     }
 
-    // Конструктор для создания задачи
-    public Task(String name, String description) {
-        this.name = name;
-        this.description = description;
-        this.status = TaskStatus.NEW;
-        this.duration = null;
-        this.startTime = null;
-    }
-
-    // Конструктор для загрузки задачи
     public Task(String name, String description, int id, TaskStatus status) {
         this.name = name;
         this.description = description;
@@ -50,6 +47,14 @@ public class Task {
         this.startTime = null;
     }
 
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
@@ -65,14 +70,6 @@ public class Task {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public TaskStatus getStatus() {
@@ -99,7 +96,6 @@ public class Task {
         this.startTime = startTime;
     }
 
-    // Метод для получения времени завершения
     public LocalDateTime getEndTime() {
         if (startTime == null || duration == null) {
             return null;
@@ -107,6 +103,18 @@ public class Task {
         return startTime.plus(duration);
     }
 
+    @Override
+    public String toString() {
+        return "Task{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", status=" + status +
+                ", duration=" + duration +
+                ", startTime=" + startTime +
+                ", endTime=" + getEndTime() +
+                '}';
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -119,18 +127,5 @@ public class Task {
     @Override
     public int hashCode() {
         return Objects.hash(id);
-    }
-
-    @Override
-    public String toString() {
-        return "Task{" +
-                "name='" + name + '\'' +
-                ", description='" + description + '\'' +
-                ", id=" + id +
-                ", status=" + status +
-                ", duration=" + duration +
-                ", startTime=" + startTime +
-                ", endTime=" + getEndTime() +
-                '}';
     }
 }

@@ -22,8 +22,4 @@ public class EpicTest {
         assertNotEquals(epic1, epic2, "Эпики с разными ID не должны быть равны.");
     }
 
-    @Test
-    void cannotBeSubtaskOfItself() {
-        Epic epic = new Epic("Epic Name", "Epic Desc", 1, TaskStatus.NEW);
-    }
 }
