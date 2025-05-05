@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 
 public class Epic extends Task {
@@ -19,6 +18,7 @@ public class Epic extends Task {
         this.startTime = null;
         this.endTime = null;
     }
+
     public Epic(String name, String description, int id, TaskStatus status) {
         super(name, description, id, status);
         this.subtaskIds = new ArrayList<>();
