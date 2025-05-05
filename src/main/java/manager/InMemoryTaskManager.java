@@ -12,7 +12,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Comparator;
 import java.util.TreeSet;
+import java.util.Collection;
 import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.HashSet;
+
 
 public class InMemoryTaskManager implements TaskManager {
     protected final HashMap<Integer, Task> tasks = new HashMap<>();
@@ -152,9 +156,9 @@ public class InMemoryTaskManager implements TaskManager {
             Epic existingEpic = epics.get(epic.getId());
             existingEpic.setName(epic.getName());
             existingEpic.setDescription(epic.getDescription());
-            existingEpic.setStatus(epic.getStatus());
+            // existingEpic.setStatus(epic.getStatus()); // Статус эпика рассчитывается, не устанавливается напрямую
 
-            calculateEpicTimesAndStatus(existingEpic);
+            calculateEpicTimesAndStatus(existingEpic); // Пересчет статуса и времени
 
             if (existingEpic.getStartTime() != null) {
                 prioritizedTasks.add(existingEpic);
@@ -275,28 +279,49 @@ public class InMemoryTaskManager implements TaskManager {
         epics.clear();
         subtasks.clear();
         prioritizedTasks.clear();
+        historyManager.removeAll();
     }
 
 
     @Override
     public void removeAllEpics() {
         epics.clear();
-        subtasks.clear();
-        prioritizedTasks.clear();
+        subtasks.clear(); // Подзадачи эпиков тоже удаляются
+        prioritizedTasks.clear(); // Очищаем prioritizedTasks полностью
+        historyManager.removeAll();
     }
 
     @Override
     public void removeAllSubtasks() {
+        // 1. Собираем ID эпиков, у которых есть подзадачи
+        Set<Integer> affectedEpicIds = new HashSet<>();
+        for (Subtask subtask : subtasks.values()) {
+            affectedEpicIds.add(subtask.getEpicId());
+        }
+
+        // 2. Собираем ID подзадач для удаления из истории
+        Set<Integer> subtaskIdsToRemove = new HashSet<>(subtasks.keySet());
+
+        // 3. Очищаем карту подзадач
+        subtasks.clear();
+
+        // 4. Удаляем только подзадачи из приоритезированного списка
         prioritizedTasks.removeIf(task -> task instanceof Subtask);
 
-        for (Subtask subtask : subtasks.values()) {
-            Epic epic = epics.get(subtask.getEpicId());
+        // 5. Удаляем подзадачи из истории
+        for (Integer subtaskId : subtaskIdsToRemove) {
+            historyManager.remove(subtaskId);
+        }
+
+
+        // 6. Для каждого затронутого эпика очищаем его список подзадач и пересчитываем
+        for (Integer epicId : affectedEpicIds) {
+            Epic epic = epics.get(epicId);
             if (epic != null) {
-                epic.removeSubtaskId((Integer) subtask.getId());
-                calculateEpicTimesAndStatus(epic);
+                epic.clearSubtaskIds(); // Очищаем список ID подзадач у эпика
+                calculateEpicTimesAndStatus(epic); // Пересчет обновит эпик в prioritizedTasks
             }
         }
-        subtasks.clear();
     }
 
 
@@ -308,7 +333,7 @@ public class InMemoryTaskManager implements TaskManager {
         List<Integer> subtaskIds = epic.getSubtaskIds();
         List<Subtask> epicSubtasks = subtaskIds.stream()
                 .map(subtasks::get)
-                .filter(java.util.Objects::nonNull)
+                .filter(java.util.Objects::nonNull) // Фильтруем null, если подзадача уже удалена из карты
                 .collect(Collectors.toList());
 
 
@@ -317,7 +342,7 @@ public class InMemoryTaskManager implements TaskManager {
             epic.setEndTime(null);
             epic.setDuration(Duration.ZERO);
             epic.setStatus(TaskStatus.NEW);
-            prioritizedTasks.remove(epic);
+            prioritizedTasks.remove(epic); // Удаляем эпик из prioritizedTasks, если у него нет времени
             return;
         }
 
@@ -329,23 +354,34 @@ public class InMemoryTaskManager implements TaskManager {
         boolean allDone = true;
         boolean inProgress = false;
 
-        earliestStartTime = epicSubtasks.stream()
-                .map(Task::getStartTime)
-                .filter(java.util.Objects::nonNull)
-                .min(LocalDateTime::compareTo)
-                .orElse(null);
+        // Рассчитываем время только по подзадачам с заданным временем
+        List<Subtask> subtasksWithTime = epicSubtasks.stream()
+                .filter(sub -> sub.getStartTime() != null && sub.getDuration() != null)
+                .collect(Collectors.toList());
 
-        latestEndTime = epicSubtasks.stream()
-                .map(Task::getEndTime)
-                .filter(java.util.Objects::nonNull)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+        if (!subtasksWithTime.isEmpty()) {
+            earliestStartTime = subtasksWithTime.stream()
+                    .map(Task::getStartTime)
+                    .min(LocalDateTime::compareTo)
+                    .orElse(null);
 
 
-        totalDuration = epicSubtasks.stream()
-                .map(Task::getDuration)
-                .filter(java.util.Objects::nonNull)
-                .reduce(Duration.ZERO, Duration::plus);
+            latestEndTime = subtasksWithTime.stream()
+                    .map(Task::getEndTime)
+                    .max(LocalDateTime::compareTo)
+                    .orElse(null);
+
+
+            totalDuration = subtasksWithTime.stream()
+                    .map(Task::getDuration)
+                    .reduce(Duration.ZERO, Duration::plus);
+
+        } else {
+            // Если подзадач с временем нет, сбрасываем время и длительность эпика
+            epic.setStartTime(null);
+            epic.setEndTime(null);
+            epic.setDuration(Duration.ZERO);
+        }
 
 
         for (Subtask subtask : epicSubtasks) {
@@ -375,9 +411,10 @@ public class InMemoryTaskManager implements TaskManager {
             epic.setStatus(TaskStatus.IN_PROGRESS);
         }
 
-        prioritizedTasks.remove(epic);
+        // Обновляем эпик в prioritizedTasks
+        prioritizedTasks.remove(epic); // Удаляем старую версию (по ID)
         if (epic.getStartTime() != null) {
-            prioritizedTasks.add(epic);
+            prioritizedTasks.add(epic); // Добавляем, если есть время
         }
     }
 

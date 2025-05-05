@@ -13,7 +13,10 @@ import java.nio.file.Files;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
@@ -127,6 +130,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 manager.calculateEpicTimesAndStatus(epic);
             }
 
+            // Перестроение prioritizedTasks после загрузки всех задач и пересчета эпиков
+            manager.prioritizedTasks.clear(); // Очищаем на всякий случай перед заполнением
             for (Task task : manager.tasks.values()) {
                 if (task.getStartTime() != null) {
                     manager.prioritizedTasks.add(task);
@@ -137,6 +142,12 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     manager.prioritizedTasks.add(subtask);
                 }
             }
+            for (Epic epic : manager.epics.values()) { // Добавляем эпики, если у них есть время (после пересчета)
+                if (epic.getStartTime() != null) {
+                    manager.prioritizedTasks.add(epic);
+                }
+            }
+
 
             manager.idCounter = maxId;
 
@@ -187,6 +198,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                     Task task = new Task(name, description, id, status, duration, startTime);
                     return Optional.of(task);
                 case EPIC:
+                    // Для Epic время и длительность будут пересчитаны после загрузки подзадач
                     Epic epic = new Epic(name, description, id, status);
                     return Optional.of(epic);
                 case SUBTASK:
