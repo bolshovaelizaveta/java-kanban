@@ -10,6 +10,14 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.Optional;
+import java.util.Set;
+import java.util.Collection;
+import java.util.stream.Stream;
+
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
 
@@ -21,7 +29,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     private void save() throws ManagerSaveException {
         try (FileWriter writer = new FileWriter(file)) {
-            writer.write("id,type,name,status,description,epic\n");
+            writer.write("id,type,name,status,description,startTime,duration,epic\n");
 
             for (Task task : getTasks()) {
                 writer.write(taskToString(task) + "\n");
@@ -41,29 +49,40 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private String taskToString(Task task) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(task.getId()).append(",");
+        StringBuilder csvLineBuilder = new StringBuilder(); // Переименовала sb в csvLineBuilder
+
+        csvLineBuilder.append(task.getId()).append(",");
+
         if (task instanceof Epic) {
-            sb.append(TaskType.EPIC);
+            csvLineBuilder.append(TaskType.EPIC);
         } else if (task instanceof Subtask) {
-            sb.append(TaskType.SUBTASK);
+            csvLineBuilder.append(TaskType.SUBTASK);
         } else {
-            sb.append(TaskType.TASK);
+            csvLineBuilder.append(TaskType.TASK);
         }
-        sb.append(",").append(task.getName());
-        sb.append(",").append(task.getStatus());
-        sb.append(",").append(task.getDescription());
+        csvLineBuilder.append(",").append(task.getName());
+        csvLineBuilder.append(",").append(task.getStatus());
+        csvLineBuilder.append(",").append(task.getDescription());
+
+        csvLineBuilder.append(",");
+        if (task.getStartTime() != null) {
+            csvLineBuilder.append(task.getStartTime());
+        }
+        csvLineBuilder.append(",");
+        if (task.getDuration() != null) {
+            csvLineBuilder.append(task.getDuration().toMinutes());
+        }
+
         if (task instanceof Subtask) {
-            sb.append(",").append(((Subtask) task).getEpicId());
+            csvLineBuilder.append(",").append(((Subtask) task).getEpicId());
         } else {
-            sb.append(",");
+            csvLineBuilder.append(",");
         }
-        return sb.toString();
+        return csvLineBuilder.toString();
     }
 
     public static FileBackedTaskManager loadFromFile(File file) throws ManagerSaveException {
         FileBackedTaskManager manager = new FileBackedTaskManager(file);
-        int maxId = 0;
 
         if (!file.exists()) {
             return manager;
@@ -73,45 +92,56 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             String content = Files.readString(file.toPath());
             String[] lines = content.split("\n");
 
-            if (lines.length > 0) {
+            if (lines.length > 1) {
                 for (int i = 1; i < lines.length; i++) {
                     String line = lines[i];
                     if (line.isBlank()) continue;
 
-                    Task task = fromString(line);
-                    if (task == null) continue;
-
-                    int taskId = task.getId();
-                    if (taskId > maxId) {
-                        maxId = taskId;
+                    Optional<Task> optionalTask = fromString(line);
+                    if (optionalTask.isEmpty()) {
+                        System.err.println("Пропущена некорректная строка при загрузке: " + line);
+                        continue;
                     }
+                    Task task = optionalTask.get();
 
                     if (task instanceof Epic) {
-                        manager.epics.put(taskId, (Epic) task);
+                        manager.epics.put(task.getId(), (Epic) task);
                     } else if (task instanceof Subtask) {
-                        manager.subtasks.put(taskId, (Subtask) task);
+                        manager.subtasks.put(task.getId(), (Subtask) task);
                     } else {
-                        manager.tasks.put(taskId, task);
+                        manager.tasks.put(task.getId(), task);
                     }
                 }
             }
+
+            int maxId = Stream.of(manager.tasks.keySet(), manager.epics.keySet(), manager.subtasks.keySet())
+                    .flatMap(Set::stream)
+                    .max(Integer::compareTo)
+                    .orElse(0);
+
+            manager.idCounter = maxId;
 
             for (Subtask subtask : manager.subtasks.values()) {
                 Epic epic = manager.epics.get(subtask.getEpicId());
                 if (epic != null) {
                     epic.addSubtaskId(subtask.getId());
                 } else {
-                    System.err.println("Предупреждение: Подзадача с ID " + subtask.getId() +
+                    System.err.println("Предупреждение при загрузке: Подзадача с ID " + subtask.getId() +
                             " ссылается на несуществующий эпик с ID " + subtask.getEpicId() +
-                            ". Подзадача будет проигнорирована.");
+                            ". Подзадача не будет привязана к эпику.");
                 }
             }
 
             for (Epic epic : manager.epics.values()) {
-                manager.updateEpicStatus(epic);
+                manager.calculateEpicTimesAndStatus(epic);
             }
 
-            manager.idCounter = maxId;
+            manager.prioritizedTasks.clear();
+            Stream.of(manager.tasks.values(), manager.epics.values(), manager.subtasks.values())
+                    .flatMap(Collection::stream)
+                    .filter(task -> task != null && task.getStartTime() != null)
+                    .forEach(manager.prioritizedTasks::add);
+
 
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка загрузки задач из файла: " + file.getName(), e);
@@ -120,52 +150,102 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         return manager;
     }
 
-    private static Task fromString(String value) {
+    private static Optional<Task> fromString(String value) {
         String[] parts = value.split(",");
         if (parts.length < 5) {
-            System.err.println("Некорректный формат строки для задачи: " + value);
-            return null;
+            return Optional.empty();
         }
 
         try {
             int id = Integer.parseInt(parts[0]);
             TaskType type = TaskType.valueOf(parts[1]);
             String name = parts[2];
-            TaskStatus status = TaskStatus.valueOf(parts[3]);
+            String statusString = parts[3];
             String description = parts[4];
+
+            TaskStatus status;
+            try {
+                status = TaskStatus.valueOf(statusString);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Ошибка парсинга статуса в строке: " + value + " - " + e.getMessage());
+                return Optional.empty();
+            }
+
+
+            LocalDateTime startTime = null;
+            if (parts.length > 5 && !parts[5].isEmpty()) {
+                try {
+                    startTime = LocalDateTime.parse(parts[5]);
+                } catch (DateTimeParseException e) {
+                    System.err.println("Ошибка парсинга времени старта в строке: " + value + " - " + e.getMessage());
+                    return Optional.empty();
+                }
+            }
+
+            Duration duration = null;
+            if (parts.length > 6 && !parts[6].isEmpty()) {
+                try {
+                    long minutes = Long.parseLong(parts[6]);
+                    duration = Duration.ofMinutes(minutes);
+                } catch (NumberFormatException e) {
+                    System.err.println("Ошибка парсинга длительности в строке: " + value + " - " + e.getMessage());
+                    return Optional.empty();
+                }
+            }
+
 
             switch (type) {
                 case TASK:
-                    Task task = new Task(name, description, id);
-                    task.setStatus(status);
-                    return task;
-                case EPIC:
-                    Epic epic = new Epic(name, description, id);
-                    epic.setStatus(status);
-                    return epic;
-                case SUBTASK:
-                    if (parts.length < 6) {
-                        System.err.println("Некорректный формат строки для подзадачи (отсутствует epicId): " + value);
-                        return null;
+                    if (parts.length > 7 && !parts[7].isEmpty()) {
+                        System.err.println("Некорректный формат строки для Task: лишние поля или epicId: " + value);
+                        return Optional.empty();
                     }
-                    int epicId = Integer.parseInt(parts[5]);
-                    Subtask subtask = new Subtask(name, description, id, epicId);
-                    subtask.setStatus(status);
-                    return subtask;
+                    return Optional.of(new Task(name, description, id, status, duration, startTime));
+                case EPIC:
+                    if (parts.length > 7 && !parts[7].isEmpty()) {
+                        System.err.println("Некорректный формат строки для Epic: лишние поля или epicId: " + value);
+                        return Optional.empty();
+                    }
+                    return Optional.of(new Epic(name, description, id, status));
+                case SUBTASK:
+                    if (parts.length < 8 || parts[7].isEmpty()) {
+                        System.err.println("Некорректный формат строки для Subtask: отсутствует или пустой epicId: " + value);
+                        return Optional.empty();
+                    }
+                    try {
+                        int epicId = Integer.parseInt(parts[7]);
+                        if (parts.length > 8) {
+                            System.err.println("Некорректный формат строки для Subtask: лишние поля после epicId: " + value);
+                            return Optional.empty();
+                        }
+                        return Optional.of(new Subtask(name, description, id, status, epicId, duration, startTime));
+                    } catch (NumberFormatException e) {
+                        System.err.println("Ошибка парсинга epicId в строке: " + value + " - " + e.getMessage());
+                        return Optional.empty();
+                    }
+
                 default:
                     System.err.println("Неизвестный тип задачи: " + type + " в строке: " + value);
-                    return null;
+                    return Optional.empty();
             }
+        } catch (NumberFormatException e) {
+            System.err.println("Ошибка парсинга ID в строке: " + value + " - " + e.getMessage());
+            return Optional.empty();
         } catch (IllegalArgumentException e) {
-            System.err.println("Ошибка парсинга значений в строке: " + value + " - " + e.getMessage());
-            return null;
+            System.err.println("Ошибка парсинга типа задачи в строке: " + value + " - " + e.getMessage());
+            return Optional.empty();
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.err.println("Некорректный формат строки: пропущены поля: " + value + " - " + e.getMessage());
+            return Optional.empty();
         }
     }
 
     @Override
     public int createTask(Task task) {
         int id = super.createTask(task);
-        save();
+        if (id != -1) {
+            save();
+        }
         return id;
     }
 

@@ -4,16 +4,19 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ManagersTest {
+class ManagersTest {
+
     @Test
-    void getDefault_shouldReturnNonNullTaskManager() {
+    void getDefault_shouldReturnTaskManagerInstance() {
         TaskManager taskManager = Managers.getDefault();
-        assertNotNull(taskManager, "getDefault() должен возвращать не null TaskManager.");
+        assertNotNull(taskManager, "Managers.getDefault() должен возвращать экземпляр TaskManager.");
+        assertTrue(taskManager instanceof InMemoryTaskManager, "Managers.getDefault() должен возвращать экземпляр InMemoryTaskManager по умолчанию.");
     }
 
     @Test
-    void getDefaultHistory_shouldReturnNonNullHistoryManager() {
+    void getDefaultHistory_shouldReturnHistoryManagerInstance() {
         HistoryManager historyManager = Managers.getDefaultHistory();
-        assertNotNull(historyManager, "getDefaultHistory() должен возвращать не null HistoryManager.");
+        assertNotNull(historyManager, "Managers.getDefaultHistory() должен возвращать экземпляр HistoryManager.");
+        assertTrue(historyManager instanceof InMemoryHistoryManager, "Managers.getDefaultHistory() должен возвращать экзем экземпляр InMemoryHistoryManager по умолчанию.");
     }
 }
