@@ -14,9 +14,9 @@ public class InMemoryHistoryManager implements HistoryManager {
     private Node tail;
 
     private static class Node {
-        Task task;
-        Node prev;
-        Node next;
+        private Task task; // Добавила модификаторы доступа
+        private Node prev;
+        private Node next;
 
         Node(Task task) {
             this.task = task;

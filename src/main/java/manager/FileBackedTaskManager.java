@@ -49,41 +49,43 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private String taskToString(Task task) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(task.getId()).append(",");
-        if (task instanceof Epic) {
-            sb.append(TaskType.EPIC);
-        } else if (task instanceof Subtask) {
-            sb.append(TaskType.SUBTASK);
-        } else {
-            sb.append(TaskType.TASK);
-        }
-        sb.append(",").append(task.getName());
-        sb.append(",").append(task.getStatus());
-        sb.append(",").append(task.getDescription());
+        StringBuilder csvLineBuilder = new StringBuilder(); // Переименовала sb в csvLineBuilder
 
-        sb.append(",");
-        if (task.getStartTime() != null) {
-            sb.append(task.getStartTime());
+        csvLineBuilder.append(task.getId()).append(",");
+
+        if (task instanceof Epic) {
+            csvLineBuilder.append(TaskType.EPIC);
+        } else if (task instanceof Subtask) {
+            csvLineBuilder.append(TaskType.SUBTASK);
+        } else {
+            csvLineBuilder.append(TaskType.TASK);
         }
-        sb.append(",");
+        csvLineBuilder.append(",").append(task.getName());
+        csvLineBuilder.append(",").append(task.getStatus());
+        csvLineBuilder.append(",").append(task.getDescription());
+
+        csvLineBuilder.append(",");
+        if (task.getStartTime() != null) {
+            csvLineBuilder.append(task.getStartTime());
+        }
+        csvLineBuilder.append(",");
         if (task.getDuration() != null) {
-            sb.append(task.getDuration().toMinutes());
+            csvLineBuilder.append(task.getDuration().toMinutes());
         }
 
         if (task instanceof Subtask) {
-            sb.append(",").append(((Subtask) task).getEpicId());
+            csvLineBuilder.append(",").append(((Subtask) task).getEpicId());
         } else {
-            sb.append(",");
+            csvLineBuilder.append(",");
         }
-        return sb.toString();
+        return csvLineBuilder.toString();
     }
 
     public static FileBackedTaskManager loadFromFile(File file) throws ManagerSaveException {
         FileBackedTaskManager manager = new FileBackedTaskManager(file);
 
         if (!file.exists()) {
-            return manager; // Файл не существует, возвращаем пустой менеджер
+            return manager;
         }
 
         try {
