@@ -12,7 +12,8 @@ import java.time.format.DateTimeFormatter;
 
 public class GsonUtils { // Создала отдельным классом, чтобы не дублировать во всех Handler'ах
 
-    private GsonUtils() {}
+    private GsonUtils() {
+    }
 
     // Метод для получения настроенного Gson
     public static Gson getGson() {
@@ -76,3 +77,4 @@ public class GsonUtils { // Создала отдельным классом, ч
         }
     }
 }
+
