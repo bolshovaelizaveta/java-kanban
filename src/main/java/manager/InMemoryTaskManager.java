@@ -250,8 +250,7 @@ public class InMemoryTaskManager implements TaskManager {
             for (int subtaskId : new ArrayList<>(epic.getSubtaskIds())) {
                 deleteSubtask(subtaskId);
             }
-
-            if (epic.getStartTime() != null || epic.getDuration().equals(Duration.ZERO) && epic.getStartTime() == null) {
+            if (epic.getStartTime() != null) {
                 prioritizedTasks.remove(epic);
             }
             historyManager.remove(id);
@@ -269,10 +268,12 @@ public class InMemoryTaskManager implements TaskManager {
             if (epic != null) {
                 epic.removeSubtaskId(id);
                 calculateEpicTimesAndStatus(epic);
+                // Обнаружена проблема! epic.getStartTime() может стать null
+                // Проверяю, что Epic корректно удаляется/добавляется в prioritizedTasks
                 if (epic.getStartTime() == null) {
                     prioritizedTasks.remove(epic);
                 } else {
-                    prioritizedTasks.remove(epic);
+                    prioritizedTasks.remove(epic); // Изменения
                     prioritizedTasks.add(epic);
                 }
             }
@@ -287,7 +288,6 @@ public class InMemoryTaskManager implements TaskManager {
             historyManager.remove(taskId);
         }
         tasks.clear();
-
         prioritizedTasks.removeIf(task -> task instanceof Task && !(task instanceof Epic || task instanceof Subtask));
     }
 
@@ -296,25 +296,28 @@ public class InMemoryTaskManager implements TaskManager {
         Set<Integer> idsToRemoveFromHistory = new HashSet<>();
         for (Epic epic : epics.values()) {
             idsToRemoveFromHistory.add(epic.getId());
-            idsToRemoveFromHistory.addAll(epic.getSubtaskIds());
-        }
-
-        subtasks.values().forEach(subtask -> {
-            if (epics.containsKey(subtask.getEpicId())) {
-                if (subtask.getStartTime() != null) {
-                    prioritizedTasks.remove(subtask);
+            for (int subtaskId : new ArrayList<>(epic.getSubtaskIds())) {
+                Subtask subtask = subtasks.get(subtaskId);
+                if (subtask != null) {
+                    if (subtask.getStartTime() != null) {
+                        prioritizedTasks.remove(subtask);
+                    }
+                    historyManager.remove(subtaskId);
+                    subtasks.remove(subtaskId);
                 }
             }
-        });
-        subtasks.clear();
-
-        prioritizedTasks.removeIf(task -> task instanceof Epic);
+            if (epic.getStartTime() != null) {
+                prioritizedTasks.remove(epic);
+            }
+        }
 
         for (Integer id : idsToRemoveFromHistory) {
             historyManager.remove(id);
         }
-
         epics.clear();
+        prioritizedTasks.removeIf(task -> task instanceof Subtask);
+        prioritizedTasks.removeIf(task -> task instanceof Epic);
+        subtasks.clear();
     }
 
     @Override
@@ -378,7 +381,6 @@ public class InMemoryTaskManager implements TaskManager {
         for (int subtaskId : subtaskIds) {
             Subtask subtask = subtasks.get(subtaskId);
             if (subtask != null) {
-                // Обновление статуса эпика
                 if (subtask.getStatus() != TaskStatus.NEW) {
                     allNew = false;
                 }
@@ -415,7 +417,6 @@ public class InMemoryTaskManager implements TaskManager {
 
 
         if (epic.getStartTime() != null) {
-
             prioritizedTasks.remove(epic);
             prioritizedTasks.add(epic);
         } else {

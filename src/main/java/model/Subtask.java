@@ -3,36 +3,36 @@ package model;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-
 public class Subtask extends Task {
-    private final int epicId;
+    private int epicId;
 
-
-    public Subtask(String name, String description, int epicId, Duration duration, LocalDateTime startTime) {
+    public Subtask(String name, String description, TaskStatus status, int epicId, Duration duration, LocalDateTime startTime) {
         super(name, description, duration, startTime);
-        this.epicId = epicId;
-    }
-
-    public Subtask(String name, String description, int epicId) {
-        super(name, description);
+        this.status = status;
         this.epicId = epicId;
     }
 
     public Subtask(String name, String description, int id, TaskStatus status, int epicId, Duration duration, LocalDateTime startTime) {
-        super(name, description, id, status, duration, startTime);
+        super(name, description, id, status, duration, startTime); // Вызов конструктора Task с id, временем и длительностью
         this.epicId = epicId;
     }
 
-    public Subtask(String name, String description, int id, TaskStatus status, int epicId) {
-        super(name, description, id, status);
-        this.epicId = epicId;
+    // Исправила конструктор для Gson
+    public Subtask() {
+        super(null, null);
+        this.status = TaskStatus.NEW;
+        this.epicId = 0;
+        this.duration = Duration.ZERO;
+        this.startTime = null;
     }
-
 
     public int getEpicId() {
         return epicId;
     }
 
+    public void setEpicId(int epicId) {
+        this.epicId = epicId;
+    }
 
     @Override
     public String toString() {
@@ -47,5 +47,4 @@ public class Subtask extends Task {
                 ", endTime=" + getEndTime() +
                 '}';
     }
-
 }

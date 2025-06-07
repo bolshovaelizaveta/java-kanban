@@ -49,7 +49,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     }
 
     private String taskToString(Task task) {
-        StringBuilder csvLineBuilder = new StringBuilder(); // Переименовала sb в csvLineBuilder
+        StringBuilder csvLineBuilder = new StringBuilder();
 
         csvLineBuilder.append(task.getId()).append(",");
 

@@ -5,26 +5,29 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class Epic extends Task {
-    private final List<Integer> subtaskIds;
-    private LocalDateTime endTime;
+    private List<Integer> subtaskIds = new ArrayList<>();
+    private LocalDateTime endTime = null;
 
     public Epic(String name, String description) {
         super(name, description);
-        this.subtaskIds = new ArrayList<>();
         this.status = TaskStatus.NEW;
         this.duration = Duration.ZERO;
         this.startTime = null;
-        this.endTime = null;
     }
 
     public Epic(String name, String description, int id, TaskStatus status) {
         super(name, description, id, status);
-        this.subtaskIds = new ArrayList<>();
         this.duration = Duration.ZERO;
         this.startTime = null;
-        this.endTime = null;
+    }
+
+    // Это для Gson, чтобы не было больше null. Иначе NullPointerException заставляет дёргаться мой глаз
+    public Epic() {
+        super(null, null); // Вызов конструктора "родителя"
+        this.status = TaskStatus.NEW;
+        this.duration = Duration.ZERO;
+        this.startTime = null;
     }
 
 
@@ -67,7 +70,6 @@ public class Epic extends Task {
         this.startTime = startTime;
     }
 
-
     @Override
     public String toString() {
         return "Epic{" +
@@ -81,5 +83,4 @@ public class Epic extends Task {
                 ", endTime=" + endTime +
                 '}';
     }
-
 }
