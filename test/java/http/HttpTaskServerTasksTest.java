@@ -22,9 +22,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class HttpTaskServerTasksTest {
 
-    TaskManager manager;
-    HttpTaskServer taskServer;
-    Gson gson;
+    // Добавлены модификаторы доступа
+    private TaskManager manager;
+    private HttpTaskServer taskServer;
+    private Gson gson;
 
     private Task testTask;
 

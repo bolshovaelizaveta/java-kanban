@@ -195,8 +195,8 @@ public class HttpTaskServerEpicsTest {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(500, response.statusCode(), "Expected 500 Internal Server Error for invalid ID format (current handler logic).");
-        assertTrue(response.body().contains("Ошибка сервера: Некорректный формат ID"), "Response body should indicate server error related to ID format.");
+        assertEquals(400, response.statusCode(), "Expected 400 Bad Request for invalid ID format.");
+        assertTrue(response.body().contains("Некорректный формат ID: 'abc' не является числом."), "Response body should indicate invalid ID format error.");
     }
 
     @Test
@@ -241,8 +241,8 @@ public class HttpTaskServerEpicsTest {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(500, response.statusCode(), "Expected 500 Internal Server Error for invalid ID format (current handler logic).");
-        assertTrue(response.body().contains("Ошибка сервера: Некорректный формат ID"), "Response body should indicate server error related to ID format.");
+        assertEquals(400, response.statusCode(), "Expected 400 Bad Request for invalid ID format.");
+        assertTrue(response.body().contains("Некорректный формат ID: 'xyz' не является числом."), "Response body should indicate invalid ID format error.");
     }
 
     @Test

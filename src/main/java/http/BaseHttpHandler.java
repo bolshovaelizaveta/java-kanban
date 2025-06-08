@@ -17,6 +17,16 @@ public abstract class BaseHttpHandler implements HttpHandler {
         }
     }
 
+    // Новый вспомогательный метод для отправки HTTP-ответов
+    protected void sendResponse(HttpExchange h, int statusCode, String message) throws IOException {
+        byte[] resp = message.getBytes(StandardCharsets.UTF_8);
+        h.getResponseHeaders().add("Content-Type", "application/json;charset=utf-8");
+        h.sendResponseHeaders(statusCode, resp.length);
+        try (OutputStream os = h.getResponseBody()) {
+            os.write(resp);
+        }
+    }
+
     // Метод sendText из примера ТЗ для статуса 200
     protected void sendText(HttpExchange h, String text) throws IOException {
         byte[] resp = text.getBytes(StandardCharsets.UTF_8);
