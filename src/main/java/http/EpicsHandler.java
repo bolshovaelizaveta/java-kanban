@@ -55,6 +55,7 @@ public class EpicsHandler extends BaseHttpHandler {
             sendInternalServerError(exchange, "Ошибка сервера: " + e.getMessage());
         }
     }
+
     private void handleGetRequest(HttpExchange exchange, String query) throws IOException {
         Optional<Integer> epicIdOptional = parseId(query);
         if (epicIdOptional.isPresent()) {
