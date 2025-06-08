@@ -13,7 +13,7 @@ public class Subtask extends Task {
     }
 
     public Subtask(String name, String description, int id, TaskStatus status, int epicId, Duration duration, LocalDateTime startTime) {
-        super(name, description, id, status, duration, startTime); // Вызов конструктора Task с id, временем и длительностью
+        super(name, description, id, status, duration, startTime);
         this.epicId = epicId;
     }
 

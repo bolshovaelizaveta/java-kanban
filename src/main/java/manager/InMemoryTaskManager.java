@@ -16,9 +16,13 @@ public class InMemoryTaskManager implements TaskManager {
     protected final Map<Integer, Epic> epics;
     protected final Map<Integer, Subtask> subtasks;
     protected int idCounter;
-    private final HistoryManager historyManager;
+    protected  final HistoryManager historyManager;
     protected final Set<Task> prioritizedTasks;
 
+
+    public HistoryManager getHistoryManager() {
+        return historyManager;
+    }
 
     public InMemoryTaskManager() {
         this.tasks = new HashMap<>();
@@ -268,12 +272,10 @@ public class InMemoryTaskManager implements TaskManager {
             if (epic != null) {
                 epic.removeSubtaskId(id);
                 calculateEpicTimesAndStatus(epic);
-                // Обнаружена проблема! epic.getStartTime() может стать null
-                // Проверяю, что Epic корректно удаляется/добавляется в prioritizedTasks
                 if (epic.getStartTime() == null) {
                     prioritizedTasks.remove(epic);
                 } else {
-                    prioritizedTasks.remove(epic); // Изменения
+                    prioritizedTasks.remove(epic);
                     prioritizedTasks.add(epic);
                 }
             }
