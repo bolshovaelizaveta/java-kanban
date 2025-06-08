@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 public abstract class TaskManagerTest<T extends TaskManager> {
     protected TaskManager taskManager;
 
@@ -116,8 +118,11 @@ public abstract class TaskManagerTest<T extends TaskManager> {
     @Test
     void cannotCreateSubtaskWithoutExistingEpic() {
         Subtask subtask = new Subtask("Подзадача", "Описание", TaskStatus.NEW, 10, Duration.ofMinutes(30L), LocalDateTime.now());
-        int subtaskId = this.taskManager.createSubtask(subtask);
-        Assertions.assertEquals(-1, subtaskId);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                        this.taskManager.createSubtask(subtask),
+                "Expected IllegalArgumentException when creating subtask with non-existent epic.");
+        Assertions.assertEquals("Невозможно создать подзадачу без существующего Эпика.", exception.getMessage());
     }
 
     @Test
