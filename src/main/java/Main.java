@@ -3,6 +3,7 @@ import manager.Managers;
 import model.Epic;
 import model.Subtask;
 import model.Task;
+import model.TaskStatus;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -26,16 +27,16 @@ public class Main {
         Epic epic1 = new Epic("Собрать вещи", "Собрать вещи и переехать в новую квартиру");
         int epic1Id = taskManager.createEpic(epic1);
 
-        Subtask subtask1 = new Subtask("Собрать коробки", "Нужно найти и собрать все коробки для вещей", epic1Id, Duration.ofMinutes(60), LocalDateTime.now().plusHours(2));
+        Subtask subtask1 = new Subtask("Собрать коробки", "Нужно найти и собрать все коробки для вещей", TaskStatus.NEW, epic1Id, Duration.ofMinutes(60), LocalDateTime.now().plusHours(2));
         int subtask1Id = taskManager.createSubtask(subtask1);
 
-        Subtask subtask2 = new Subtask("Упаковать книги", "Собрать все книги в коробки", epic1Id, Duration.ofMinutes(90), LocalDateTime.now().plusHours(4));
+        Subtask subtask2 = new Subtask("Упаковать книги", "Собрать все книги в коробки", TaskStatus.NEW, epic1Id, Duration.ofMinutes(90), LocalDateTime.now().plusHours(4));
         int subtask2Id = taskManager.createSubtask(subtask2);
 
         Epic epic2 = new Epic("Подготовка к отпуску", "Запланировать и подготовиться к отпуску");
         int epic2Id = taskManager.createEpic(epic2);
 
-        Subtask subtask3 = new Subtask("Купить билеты", "На самолет или поезд", epic2Id, Duration.ofMinutes(30), LocalDateTime.now().plusDays(2));
+        Subtask subtask3 = new Subtask("Купить билеты", "На самолет или поезд", TaskStatus.NEW, epic2Id, Duration.ofMinutes(30), LocalDateTime.now().plusDays(2));
         int subtask3Id = taskManager.createSubtask(subtask3);
 
 
@@ -98,6 +99,5 @@ public class Main {
         for (Task task : taskManager.getPrioritizedTasks()) {
             System.out.println(task);
         }
-
     }
 }
